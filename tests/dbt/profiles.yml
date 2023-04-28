@@ -1,0 +1,27 @@
+config:
+  send_anonymous_usage_stats: False
+
+
+jaffle_shop:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: '../.data/jaffle_shop.duckdb'
+      threads: 24
+
+snowflake_test:
+  target: loader
+  outputs:
+    loader:
+      type: "snowflake"
+      account: "{{env_var('SNOWFLAKE_DATAPRODUCT_ACCOUNT')}}.{{env_var('SNOWFLAKE_DATAPRODUCT_REGION')}}"
+      user: "{{env_var('SNOWFLAKE_DATAPRODUCT_USER')}}" 
+      password: "{{env_var('SNOWFLAKE_DATAPRODUCT_PASSWORD')}}"
+      role: "test_loader"
+      database: "test"
+      warehouse: "test"
+      schema:  "test"
+      threads: 1
+      client_session_keep_alive: False
+      query_tag: "eyeshare"

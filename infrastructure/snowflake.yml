@@ -1,0 +1,47 @@
+# ref: https://github.com/navikt/snowbird
+
+version: "1.0"
+
+# Databases
+databases:
+    - test_database:
+        shared: no
+        schemas:
+            - test_schema
+ 
+# Roles
+roles:
+  - test_role:
+      member_of:
+        - public
+      warehouses:
+        - test_warehouse
+      privileges:
+        databases:
+          read:
+            - test_database
+          write:
+            - test_database
+        schemas:
+          read:
+            - test_database.test_schema
+          write:
+             - test_database.test_schema
+        tables:
+          read:
+            - test_database.test_schema.*
+          write:
+            - test_database.test_schema.*
+
+# Users
+users:
+  - test_user:
+      can_login: yes
+      member_of:
+        - test_role
+        - public
+
+# Warehouses
+warehouses:
+  - test_warehouse:
+      size: x-small
