@@ -10,7 +10,7 @@ import pandas as pd
 import inbound.core.dbt_profile as dbt_profile
 from inbound.core.jobs import run_job, run_jobs
 from inbound.core.models import Profile, Spec
-from inbound.core.template_project import init_template_project
+from inbound.core.template_project.template import init_template_project
 
 # from pygit2 import Repository
 # from inbound.snowflake import SnowflakeConnection

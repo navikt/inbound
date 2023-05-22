@@ -6,8 +6,8 @@ authors = [ "me <me@my.email>", ]
 
 [tool.poetry.dependencies]
 python = "^3.10.0"
-inbound-core = "0.0.1"
-inbound-duckdb = "0.0.1"
+inbound-core = { git = "https://github.com/navikt/inbound.git@main#egg=inbound-core&subdirectory=packages/core" }
+inbound-duckdb = { git = "https://github.com/navikt/inbound.git@main#egg=inbound-duckdb&subdirectory=packages/duckdb" }
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.3.1"
