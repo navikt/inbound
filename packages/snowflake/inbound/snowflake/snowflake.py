@@ -32,10 +32,11 @@ class SnowflakeConnection(SQLAlchemyConnection):
     def __init__(self, profile: Profile):
         super().__init__(profile)
 
-        # use sql alchemy conn string
+        # use sqlalchemy conn string if provided
         if profile.spec.connection_string is not None:
             return
 
+        # use dbt profile if provided
         if profile.spec.profile and profile.spec.target:
             try:
                 params = dbt_connection_params(
@@ -54,6 +55,7 @@ class SnowflakeConnection(SQLAlchemyConnection):
                     f"Error reading dbt profile for profile={profile.spec.profile} and target={profile.spec.target} with profiles_dir {profile.spec.profiles_dir}. {e}"
                 )
 
+        # fallback to use parameters provided in spec
         params = dict()
         spec_dict = profile.spec.dict(by_alias=True)
         for param in sf_conn_params:

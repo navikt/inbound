@@ -2,17 +2,20 @@ import importlib.metadata
 import os
 import webbrowser
 from pathlib import Path
+from typing import Optional
 
 import click
 import pandas as pd
-from pygit2 import Repository
 
 import inbound.core.dbt_profile as dbt_profile
 from inbound.core.jobs import run_job, run_jobs
 from inbound.core.models import Profile, Spec
-from inbound.snowflake import SnowflakeConnection
+from inbound.core.template_project import init_template_project
 
-__version__ = importlib.metadata.version(__package__)
+# from pygit2 import Repository
+# from inbound.snowflake import SnowflakeConnection
+
+__version__ = importlib.metadata.version(__package__ or __name__)
 
 
 here = os.getcwd()
@@ -75,7 +78,7 @@ def run(profiles_dir, project_dir, job):
         return run_jobs(dir, profiles_dir)
 
 
-@inbound.command
+""" @inbound.command
 @click.option("--profile", default=None, required=True)
 @click.option("--target", default="constructor", required=False)
 @click.option(
@@ -84,21 +87,30 @@ def run(profiles_dir, project_dir, job):
     required=False,
 )
 def clone(**user_input) -> None:
-    dbt_profile_params = dbt_profile.dbt_connection_params(**user_input)
-    spec = Spec(**dbt_profile_params)
-    profile = Profile(type="snowflake", name=f"snowflake", spec=spec)
+    try:
+        dbt_profile_params = dbt_profile.dbt_connection_params(**user_input)
+        spec = Spec(**dbt_profile_params)
+        profile = Profile(type="snowflake", name=f"snowflake", spec=spec)
 
-    prefix = Repository(".").head.shorthand.replace("-", "_")
-    original_db = spec.database
-    cloned_db = f"{prefix}_{original_db}"
+        prefix = Repository(".").head.shorthand.replace("-", "_")
+        original_db = spec.database
+        cloned_db = f"{prefix}_{original_db}"
 
-    query = f"show grants on database regnskap"
-    with SnowflakeConnection(profile=profile) as db:
-        db.execute(f"create or replace database {cloned_db} clone {original_db}")
-        df = pd.read_sql(sql=query, con=db.engine)
-        df = df[df["privilege"] == "USAGE"]
-        for grantee in df["grantee_name"].__iter__():
-            db.execute(f"grant usage on database {cloned_db} to role {grantee}")
+        query = f"show grants on database regnskap"
+        with SnowflakeConnection(profile=profile) as db:
+            db.execute(f"create or replace database {cloned_db} clone {original_db}")
+            df = pd.read_sql(sql=query, con=db.engine)
+            df = df[df["privilege"] == "USAGE"]
+            for grantee in df["grantee_name"].__iter__():
+                db.execute(f"grant usage on database {cloned_db} to role {grantee}")
+    except:
+        click.echo(f"Error cloning snowflake database") """
+
+
+@inbound.command
+def init() -> None:
+    """Create a new inbound repository."""
+    init_template_project()
 
 
 def main():

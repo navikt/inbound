@@ -1,5 +1,6 @@
 """inbound core."""
 
+from . import cli
 from .environment import get_env, set_env
 from .job_result import JobResult
 from .logging import LOGGER
@@ -13,4 +14,5 @@ __all__ = [
     "set_env",
     "JobResult",
     "Profile",
+    "cli",
 ]

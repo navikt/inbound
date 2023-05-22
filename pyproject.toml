@@ -5,10 +5,8 @@ description = "Inbound testing"
 authors = [ "Virksomhetsdatalaget <virksomhetsdatalaget@nav.no>", ]
 
 [tool.poetry.dependencies]
-python = "^3.11.0"
-
+python = "^3.10.0"
 inbound-core = { version = "0.0.1" }
-inbound-client = { version = "0.0.1" }
 inbound-file = { version = "0.0.1" }
 inbound-gcs = { version = "0.0.1" }
 inbound-duckdb = { version = "0.0.1" }
@@ -29,7 +27,6 @@ pylint = "^2.16.3"
 pyright = "^1.1.296"
 
 inbound-core = { path="./packages/core", develop=true }
-inbound-client = { path="./packages/client", develop=true }
 inbound-file = { path="./packages/file", develop=true }
 inbound-gcs = { path="./packages/gcs", develop=true }
 inbound-duckdb = { path="./packages/duckdb", develop=true }
@@ -40,7 +37,7 @@ inbound-snowflake = { path="./packages/snowflake", develop=true }
 inbound-postgres = { path="./packages/postgres", develop=true }
 
 [tool.pytest.ini_options]
-pythonpath = [".", "inbound/core"]
+pythonpath = [".", "inbound"]
 filterwarnings = ["ignore::DeprecationWarning"]
 
 [tools.pyright]

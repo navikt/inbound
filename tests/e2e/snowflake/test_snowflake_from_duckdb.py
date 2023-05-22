@@ -10,7 +10,7 @@ from inbound.duckdb import DuckDBConnection
 from inbound.snowflake import SnowflakeConnection
 from tests.utils.dataframes import df
 
-duck_credentials = Spec(name="duckdb", database=":memory", table="test")
+duck_credentials = Spec(name="duckdb", database=None, table="test")
 duck_profile = Profile(spec=duck_credentials)
 
 LOGGER = logging.getLogger(__name__)
