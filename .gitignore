@@ -151,7 +151,6 @@ cython_debug/
 **/tempdb
 **/tempdb.*
 **/test.db
-**/duckdb
 
 data/dbt/target/models
 data/dbt/target/run
