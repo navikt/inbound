@@ -19,6 +19,7 @@ source ./.venv/bin/activate
 Intialize your project
 
 ```shell
+pip install -e 'git+https://github.com/navikt/inbound.git@main#egg=inbound-core&subdirectory=packages/core'
 inbound init
 ```
 
@@ -36,9 +37,10 @@ poetry run pytest ./tests
 
 ## Development
 
+Clone repo
+
 
 ```shell
-
 make install
 ```
 
