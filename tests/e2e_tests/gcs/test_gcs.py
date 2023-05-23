@@ -9,7 +9,7 @@ from inbound.gcs import GCSConnection
 
 from .utils import df
 
-credentials = Spec(name="duckdb", database=":memory", table="test")
+credentials = Spec(name="duckdb", database=None, table="test")
 profile = Profile(spec=credentials)
 
 gcs_spec = BucketSpec(bucket="sync-service", blob="test/test_duckdb.csv.gz")
