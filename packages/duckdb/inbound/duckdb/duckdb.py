@@ -11,10 +11,10 @@ import duckdb
 import pandas
 
 from inbound.core import JobResult, Profile, connection_factory, logging
+from inbound.core.common import retry_with_backoff
+from inbound.core.connection import BaseConnection
 from inbound.core.models import SyncMode
-from inbound.plugins.common import retry_with_backoff
-from inbound.plugins.connections.connection import BaseConnection
-from inbound.plugins.connections.gcs import GCSConnection
+from inbound.gcs import GCSConnection
 
 LOGGER = logging.LOGGER
 
@@ -73,9 +73,7 @@ class DuckDBConnection(BaseConnection):
         chunk_number = 0
         total_rows = 0
         try:
-            batch_reader = self.connection.execute(query).fetch_record_batch(
-                chunk_size=chunk_size
-            )
+            batch_reader = self.connection.execute(query).fetch_record_batch(chunk_size)
             while True:
                 job_res.start_date_time = datetime.datetime.now()
                 try:

@@ -173,5 +173,8 @@ short.csv
 #profiling
 fil-result/
 
+#poetry
+poetry.lock
+
 
 
