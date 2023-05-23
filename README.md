@@ -11,8 +11,7 @@ mkdir my_project
 Create a virtual environment 
 
 ```shell
-python -m venv .venv
-source ./.venv/bin/activate
+python -m venv .venv && source ./.venv/bin/activate
 ```
 
 

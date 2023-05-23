@@ -23,7 +23,7 @@ build:
 
 ## install in virtal env 
 install:
-	python3.11 -m venv .venv && \
+	python3.10 -m venv .venv && \
 		${PY} pip install --upgrade pip && \
 		poetry env use ./.venv/bin/python
 		poetry install
@@ -39,22 +39,22 @@ format:
 
 ## Run unit tests
 test:
-	poetry run pytest ./tests/unit --cov=$(pkg_src)
+	poetry run pytest ./tests/unit_tests --cov=$(pkg_src)
 
 ## Start dev containers
 dockerup:
-	docker-compose -f ./tests/e2e/docker-compose.yml up 
+	docker-compose -f ./tests/e2e_tests/docker-compose.yml up 
 
 ## Stop dev containers
 dockerdown:
-	docker-compose -f ./tests/e2e/docker-compose.yml down 
+	docker-compose -f ./tests/e2e_tests/docker-compose.yml down 
 
 ## Run end-to-end tests
 e2e:
-	poetry run pytest ./tests/e2e/postgres/
-	poetry run pytest ./tests/e2e/oracle/
-	poetry run pytest ./tests/e2e/snowflake/
-	poetry run pytest ./tests/e2e/metadata/
+	poetry run pytest ./tests/e2e_tests/postgres/
+	poetry run pytest ./tests/e2e_tests/oracle/
+	poetry run pytest ./tests/e2e_tests/snowflake/
+	poetry run pytest ./tests/e2e_tests/metadata/
 
 ## Run tests, generate a coverage report, and open in browser
 testcov:

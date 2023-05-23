@@ -152,14 +152,7 @@ cython_debug/
 **/tempdb.*
 **/test.db
 
-data/dbt/target/models
-data/dbt/target/run
-data/dbt/target/compiled
-data/dbt/target/catalog.json
-data/dbt/target/graph.*
-data/dbt/target/*.msgpack
-data/dbt/target/run_results.*
-data/dbt/target/index.html
+
 
 #testing
 inbound/utils/
@@ -167,11 +160,19 @@ examples/notebook/test_out.csv
 test.py
 **/source.csv
 **/source_processed.csv
-target/
+**/target/compiled
+**/target/run
+**/target/*.*
 short.csv
 
 #profiling
 fil-result/
+
+#poetry
+poetry.lock
+
+#dbt test
+!**/target/manifest.json
 
 
 

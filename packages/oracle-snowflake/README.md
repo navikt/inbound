@@ -1,1 +1,1 @@
-# Inbound DuckDB connection
+# Inbound Oracle-Snowflake connection
