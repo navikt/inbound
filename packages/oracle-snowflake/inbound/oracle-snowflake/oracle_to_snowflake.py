@@ -41,6 +41,8 @@ def get_target_schema(source_db, table_name) -> List[ColumnModel]:
     return target_schema
 
 
+# https://medium.com/snowflake/simplify-data-ingestion-with-snowpark-python-file-access-f2bc0e4cd887
+# https://connor-mcdonald.com/2021/12/06/sqlplus-shortcut-for-fast-data-unload/
 def sync_table(
     source_connector: Profile,
     target_connector: Profile,

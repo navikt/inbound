@@ -81,9 +81,13 @@ def is_dbt_profiles_dir(profiles_dir: str):
 
 
 def dbt_profile_from_yml(settings: BaseSettings) -> Dict[str, Any]:
-    profiles_dir = os.getenv(
-        "DBT_PROFILES_DIR", settings.__config__.default_profiles_dir
-    )
+    profiles_dir = os.getenv("DBT_PROFILES_DIR")
+
+    if profiles_dir is None:
+        if is_dbt_profiles_dir(Path.cwd() / "dbt"):
+            profiles_dir = Path.cwd() / "dbt"
+        else:
+            profiles_dir = settings.__config__.default_profiles_dir
 
     if not is_dbt_profiles_dir(profiles_dir):
         LOGGER.error(

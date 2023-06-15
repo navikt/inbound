@@ -13,13 +13,15 @@ def init_template_project(path: Union[str, Path] = Path.cwd()) -> None:
     config_path = root_path / f"pyproject.toml"
     dbt_path = root_path / "dbt"
     inbound_path = root_path / "inbound"
+    api_path = root_path / "api"
+    infra_path = root_path / "infrastructure"
     tests_path = root_path / "tests"
 
     if config_path.exists():
         raise click.ClickException(f"Found an existing project in '{config_path}'")
 
     _create_config(config_path)
-    _create_empty_folders([dbt_path, inbound_path])
+    _create_empty_folders([dbt_path, inbound_path, api_path, infra_path])
     _create_tests(tests_path)
 
 

@@ -8,6 +8,10 @@ authors = [ "me <me@my.email>", ]
 python = "^3.10.0"
 inbound-core = { git = "https://github.com/navikt/inbound.git", subdirectory="packages/core" }
 inbound-duckdb = {git = "https://github.com/navikt/inbound.git", subdirectory = "packages/duckdb"}
+inbound-sqlalchemy = {git = "https://github.com/navikt/inbound.git", subdirectory = "packages/sqlalchemy"}
+inbound-snowflake = {git = "https://github.com/navikt/inbound.git", subdirectory = "packages/snowflake"}
+snowbird = {git = "https://github.com/navikt/snowbird.git" }
+
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.3.1"

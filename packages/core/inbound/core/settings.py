@@ -14,7 +14,7 @@ class BookmarkModel(BaseModel):
 
 class GCPModel(BaseModel):
     project_id: str
-    secrets: Optional[Dict]
+    secrets: Optional[List]
     syncbucket: Optional[str]
     metadatabucket: Optional[str]
 
@@ -65,7 +65,10 @@ class Settings(BaseSettings):
     tags: Optional[TagModel]
 
     class Config:
+
         default_settings_path = Path.home() / ".inbound"
+        if not Path(default_settings_path).exists():
+            default_settings_path = Path.cwd() / "inbound"
         env_prefix = "INBOUND_"
         env_nested_delimiter = "__"
         fields = {"secret_dir": {"env": "INBOUND_SECRETS_DIR"}}
