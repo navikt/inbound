@@ -1,0 +1,41 @@
+// For format details, see https://aka.ms/vscode-remote/devcontainer.json or this file's README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.134.0/containers/python-3
+{
+  "name": "VDL faktura",
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "context": ".."
+  },
+  "mounts": [
+    // Mac
+    "source=${localEnv:HOME}/.config/gcloud,target=/home/.config/gcloud,type=bind,consistency=cached",
+    // Windows
+    //"source=${localEnv:APPDATA}/gcloud,target=/home/.config/gcloud,type=bind,consistency=cached"
+    // Re-use local Git configuration
+    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached"
+  ],
+  "containerEnv": {
+    "GOOGLE_APPLICATION_CREDENTIALS": "/home/.config/gcloud/application_default_credentials.json"
+  },
+  // Set *default* container specific settings.json values on container create.
+  "settings": {
+    "python.defaultInterpreterPath": "/.venv/bin/python",
+    "python.pythonPath": "/.venv/bin/python"
+  },
+  // Add the IDs of extensions you want installed when the container is created.
+  "extensions": [
+    "ms-python.python",
+    "ms-azuretools.vscode-docker",
+    "ms-vscode.cpptools",
+    "ms-vscode.azure-sphere-tools",
+    "ms-vscode.azure-sphere-tools-ui"
+  ],
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  "forwardPorts": [
+    4000
+  ],
+  // Use 'postCreateCommand' to run commands after the container is created.
+  // "postCreateCommand": "pip install -r requirements.txt",
+  // Comment out to connect as root instead.
+  "remoteUser": "root"
+}

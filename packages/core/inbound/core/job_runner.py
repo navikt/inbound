@@ -5,7 +5,8 @@ import tempfile
 import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
-from typing import Protocol  # , runtime_checkable
+from enum import Enum
+from typing import List, Protocol  # , runtime_checkable
 
 from inbound.core import dbt_profile, jobs
 from inbound.core.connection import Connection
@@ -18,6 +19,14 @@ from inbound.gcs import GCSConnection
 
 class Request(Protocol):
     ...
+
+
+class Actions(Enum):
+    INGEST = 1
+    TRANSFORM = 2
+    METADATA = 3
+    SODA = 4
+    RE_DATA = 5
 
 
 async def _run_process(cmd_args):
@@ -146,13 +155,16 @@ class JobRunner:
         metadata_schema: str = "META",
         job_file_name: str | None = None,
         connection: Connection | None = None,
+        actions: List[Actions] = [Actions.INGEST, Actions.TRANSFORM, Actions.METADATA],
     ):
         self.db = db
         self.metadata_schema = metadata_schema
         self.job_file_name = job_file_name
         self.connection = connection
+        self.actions = actions
         self.JOBS_DIR = os.getenv("INBOUND_JOBS_DIR", "./inbound/jobs")
         self.DBT_DIR = os.getenv("DBT_DIR", "./dbt")
+        self.SODA_DIR = os.getenv("SODA_DIR", "./soda")
         self.DBT_PROFILES_DIR = os.getenv("DBT_PROFILES_DIR", ".")
         self.GCS_BUCKET = os.getenv("INBOUND_GCS_BUCKET", "vdl-faktura")
         self.DBT_TARGET = "transformer"
@@ -173,10 +185,10 @@ class JobRunner:
 
         with use_dir(self.JOBS_DIR):
             time_start = datetime.now(timezone.utc)
-            # run job(s)
+            # run all jobs i directory
             if self.job_file_name is None:
                 result = jobs.run_jobs(self.JOBS_DIR, self.DBT_PROFILES_DIR)
-            else:
+            else:  # run jobs in one file
                 result = jobs.run_job(self.job_file_name, self.DBT_PROFILES_DIR)
             time_end = datetime.now(timezone.utc)
 
@@ -264,18 +276,22 @@ class JobRunner:
 
     async def run(self, request: Request = None) -> JobResult:
         # ingest data
-        res = await self.ingest()
-        if res.result != "DONE":
-            request.app.state.status[self.job_id] = "FAILED"
-            return res
+        if Actions.INGEST in self.actions:
+            res = await self.ingest()
+            LOGGER.info(res)
+            if res.result != "DONE":
+                request.app.state.status[self.job_id] = "FAILED"
+                return res
 
         # transform data
-        res = await self.transform()
-        print(res)
+        if Actions.TRANSFORM in self.actions:
+            res = await self.transform()
+            LOGGER.info(res)
 
         # generate docs
-        res = await self.dbt_generate_docs()
-        print(res)
+        if Actions.METADATA in self.actions:
+            res = await self.dbt_generate_docs()
+            LOGGER.info(res)
 
         # signal job completed
         LOGGER.info("Job completed")
