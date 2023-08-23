@@ -16,12 +16,12 @@ def _get_env_path() -> str:
     return env_local
 
 
-def get_env(t, d=None):
+def get_env(t, default_value=None):
     try:
         v = os.environ.get(t)
 
-        if v is None and d is not None:
-            v = os.environ.get(d)
+        if v is None and default_value is not None:
+            v = default_value
 
         try:
             val = re.sub(r"(\\n)|(\\\n)|(\\\\n)", r"\n", v)
