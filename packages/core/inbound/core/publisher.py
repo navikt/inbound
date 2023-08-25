@@ -11,17 +11,6 @@ from inbound.core.settings import Settings
 
 
 def publish_metadata(id: str, paths: List[str], bucket: str, run_id: str = None) -> str:
-    """[summary]
-
-    Args:
-        id (str): deata service id
-        paths (List[str]): list of source files to upload
-        bucket (str): destination bucket
-        run_id (str, optional): unique run id. Defaults to None.
-
-    Returns:
-        str: success flag
-    """
     for path in paths:
         upload_metadata_to_gcs(id, path, bucket, run_id)
 
@@ -29,15 +18,7 @@ def publish_metadata(id: str, paths: List[str], bucket: str, run_id: str = None)
 
 
 def upload_metadata_to_gcs(id: str, path: str, run_id: str = None) -> str:
-    """uploads a file to a bucket
-
-    Args:
-        id (str): data service id
-        path (str): path to source file
-        bucket_name (str): destination bucket
-        run_id (str, optional): unique run id. Defaults to None.
-
-    """
+    """uploads a file to a bucket"""
 
     settings = Settings()
 
