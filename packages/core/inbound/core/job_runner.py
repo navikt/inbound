@@ -13,8 +13,10 @@ from inbound.core.connection import Connection
 from inbound.core.job_result import JobResult
 from inbound.core.logging import LOGGER
 from inbound.core.models import Profile, Spec
+from inbound.core.soda_profile import get_soda_profile
 from inbound.core.utils import generate_id
 from inbound.gcs import GCSConnection
+from inbound.snowflake import SnowflakeConnection
 
 
 class Request(Protocol):
@@ -48,21 +50,6 @@ def use_dir(path):
         os.chdir(current_working_dir)
 
 
-# send event result to db
-def register_event_to_connection(id: str, event: str, connection: Connection) -> None:
-    with connection() as connection:
-        cursor = connection.cursor()
-        current_timestamp = str(time.time())
-        sql = None
-        try:
-            sql = f"INSERT INTO FLOWS (id, timestamp, state) VALUES ('{id}','{current_timestamp}','{event}')"
-            cursor.execute(sql)
-        except Exception as e:
-            LOGGER.info(f"Error dumping event: {sql}. Error: {e} ")
-        finally:
-            cursor.close()
-
-
 def write_pydantic_to_db(
     profile: Profile,
     table: str,
@@ -78,11 +65,11 @@ def write_pydantic_to_db(
         db.execute(
             f"""
             create table if not exists 
-            {table}(run_id string, test_time_start timestamp_ltz default current_timestamp, test_time_end timestamp_ltz default current_timestamp, raw variant)
+            {table}(run_id string, time_start timestamp_ltz default current_timestamp, time_end timestamp_ltz default current_timestamp, raw variant)
             """
         )
         db.execute(
-            f"""insert into {table}(run_id, test_time_start, test_time_end, raw)
+            f"""insert into {table}(run_id, time_start, time_end, raw)
                 select '{job_id}', '{time_start}', '{time_end}', parse_json($${blob.json()}$$);
             """
         )
@@ -108,11 +95,11 @@ def write_metadata_json_to_db(
             db.execute(
                 f"""
                 create table if not exists 
-                {table}(run_id string, test_time_start timestamp_ltz default current_timestamp, test_time_end timestamp_ltz default current_timestamp, raw variant)
+                {table}(run_id string, time_start timestamp_ltz default current_timestamp, time_end timestamp_ltz default current_timestamp, raw variant)
                 """
             )
             db.execute(
-                f"""insert into {table}(run_id, test_time_start, test_time_end, raw)
+                f"""insert into {table}(run_id, time_start, time_end, raw)
                     select '{job_id}', '{time_start}', '{time_end}', parse_json($${blob}$$);
                 """
             )
@@ -136,11 +123,11 @@ def write_metadata_text_to_db(
             db.execute(
                 f"""
                 create table if not exists 
-                {table}(run_id string, test_time_start timestamp_ltz default current_timestamp, test_time_end timestamp_ltz default current_timestamp, raw text)
+                {table}(run_id string, time_start timestamp_ltz default current_timestamp,time_end timestamp_ltz default current_timestamp, raw text)
                 """
             )
             db.execute(
-                f"""insert into {table}(run_id, test_time_start, test_time_end, raw)
+                f"""insert into {table}(run_id, time_start, time_end, raw)
                     select '{job_id}', '{time_start}', '{time_end}', '{text}';
                 """
             )
@@ -148,27 +135,59 @@ def write_metadata_text_to_db(
         print(e)
 
 
+def write_job_run_result_to_db(
+    profile: Profile,
+    job_id: str,
+    time_start: datetime,
+    time_end: datetime,
+    actions: str,
+    results: str,
+    message: str,
+    connection: Connection = SnowflakeConnection,
+):
+    time_end = datetime.now(timezone.utc)
+    try:
+        with connection(profile=profile) as db:
+            db.execute(
+                f"""
+                create table if not exists 
+                meta.job_runs(run_id string, time_start timestamp_ltz default current_timestamp,time_end timestamp_ltz default current_timestamp, actions text, results text, message text)
+                """
+            )
+            db.execute(
+                f"""insert into meta.job_runs(run_id, time_start, time_end, actions, results, message)
+                    select '{job_id}', '{time_start}', '{time_end}', '{actions}', '{results}', '{message}';
+                """
+            )
+    except Exception as e:
+        LOGGER.error(f"Error persisting job result. {e}")
+
+
 class JobRunner:
     def __init__(
         self,
         db: str,
+        profile: str,
+        target: str = "transformer",
         metadata_schema: str = "META",
         job_file_name: str | None = None,
         connection: Connection | None = None,
         actions: List[Actions] = [Actions.INGEST, Actions.TRANSFORM, Actions.METADATA],
+        soda: callable = None,
     ):
         self.db = db
         self.metadata_schema = metadata_schema
         self.job_file_name = job_file_name
         self.connection = connection
         self.actions = actions
+        self.soda = soda
         self.JOBS_DIR = os.getenv("INBOUND_JOBS_DIR", "./inbound/jobs")
         self.DBT_DIR = os.getenv("DBT_DIR", "./dbt")
         self.SODA_DIR = os.getenv("SODA_DIR", "./soda")
         self.DBT_PROFILES_DIR = os.getenv("DBT_PROFILES_DIR", ".")
-        self.GCS_BUCKET = os.getenv("INBOUND_GCS_BUCKET", "vdl-faktura")
-        self.DBT_TARGET = "transformer"
-        self.DBT_PROFILE = "snowflake_faktura"
+        self.GCS_BUCKET = os.getenv("INBOUND_GCS_BUCKET", None)
+        self.DBT_TARGET = target
+        self.DBT_PROFILE = profile
         self.TEMP_DIR = tempfile.mkdtemp()
 
         self.job_id = generate_id()
@@ -204,15 +223,19 @@ class JobRunner:
             )
             return result
 
-    async def transform(self) -> str:
+    async def transform(self) -> JobResult:
         LOGGER.info("Running transformations")
 
-        with use_dir(self.DBT_DIR):
-            return await _run_process(
-                f"source activate && dbt run --profiles-dir {self.DBT_PROFILES_DIR} --target {self.DBT_TARGET}"
-            )
+        try:
+            with use_dir(self.DBT_DIR):
+                await _run_process(
+                    f"source activate && dbt run --profiles-dir {self.DBT_PROFILES_DIR} --target {self.DBT_TARGET}"
+                )
+                return JobResult(result="DONE")
+        except:
+            return JobResult(result="FAILED")
 
-    async def dbt_generate_docs(self) -> str:
+    async def dbt_generate_docs(self) -> JobResult:
         LOGGER.info("Storing metadata")
 
         time_start = datetime.now(timezone.utc)
@@ -271,30 +294,101 @@ class JobRunner:
                     f"gs://{bucket}/{self.job_id}/{blob}.json",
                     self.connection,
                 )
-            except Exception as e:
-                print(e)
+                return JobResult(result="DONE")
+            except:
+                return JobResult(result="FAILED")
+
+    async def run_soda_tests(self) -> JobResult:
+        LOGGER.info("Running soda tests")
+
+        try:
+            scan = self.soda()
+            scan.disable_telemetry()
+            scan.set_data_source_name("faktura")
+            """  soda_profile = soda_profile_yml(
+                "data_source faktura", "snowflake_faktura", "loader", "./dbt"
+            ) """
+            soda_profile = get_soda_profile(self.profile)
+            scan.add_configuration_yaml_str(soda_profile)
+            scan.add_sodacl_yaml_files("./soda")
+            scan.set_verbose(False)
+
+            time_test_start = datetime.now(timezone.utc)
+
+            scan.execute()
+
+            result = json.dumps(scan.get_scan_results())
+
+            time_test_end = datetime.now(timezone.utc)
+
+            write_metadata_json_to_db(
+                self.profile,
+                f"{self.db}.meta.soda_run",
+                self.job_id,
+                time_test_start,
+                time_test_end,
+                result,
+                self.connection,
+            )
+            return JobResult(result="DONE")
+        except:
+            return JobResult(result="FAILED")
 
     async def run(self, request: Request = None) -> JobResult:
+        time_start = datetime.now(timezone.utc)
+
+        results = []
+        res = JobResult(result="FAILED")
+
         # ingest data
         if Actions.INGEST in self.actions:
             res = await self.ingest()
+            results.append(res)
             LOGGER.info(res)
-            if res.result != "DONE":
-                request.app.state.status[self.job_id] = "FAILED"
-                return res
+            if request and res.result == "DONE":
+                request.app.state.status[self.job_id] = "INGEST DONE"
 
-        # transform data
-        if Actions.TRANSFORM in self.actions:
-            res = await self.transform()
-            LOGGER.info(res)
+        if res.result == "DONE" or Actions.INGEST not in self.actions:
+            # transform data
+            if Actions.TRANSFORM in self.actions:
+                res = await self.transform()
+                results.append(res)
+                if request and res.result == "DONE":
+                    request.app.state.status[self.job_id] = "TRANSFORM DONE"
+                LOGGER.info(res)
 
-        # generate docs
-        if Actions.METADATA in self.actions:
-            res = await self.dbt_generate_docs()
-            LOGGER.info(res)
+            # generate docs
+            if Actions.METADATA in self.actions:
+                res = await self.dbt_generate_docs()
+                results.append(res)
+                if request and res.result == "DONE":
+                    request.app.state.status[self.job_id] = "METADATA DONE"
+                LOGGER.info(res)
 
-        # signal job completed
-        LOGGER.info("Job completed")
-        if request is not None:
-            request.app.state.status[self.job_id] = "DONE"
+            # run soda tests
+            if Actions.SODA in self.actions:
+                res = await self.run_soda_tests()
+                results.append(res)
+                if request and res.result == "DONE":
+                    request.app.state.status[self.job_id] = "SODA DONE"
+                LOGGER.info(res)
+
+            # signal job completed
+            LOGGER.info("Job completed")
+            if request is not None:
+                request.app.state.status[self.job_id] = "DONE"
+
+        # persist job results
+        time_end = datetime.now(timezone.utc)
+
+        write_job_run_result_to_db(
+            self.profile,
+            self.job_id,
+            time_start,
+            time_end,
+            "".join(str(a) for a in self.actions),
+            "".join(str(r) for r in results),
+            "",
+        )
+
         return res
