@@ -6,7 +6,7 @@ import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from enum import Enum
-from typing import List, Protocol  # , runtime_checkable
+from typing import List, Protocol
 
 from inbound.core import dbt_profile, jobs
 from inbound.core.connection import Connection
@@ -65,11 +65,11 @@ def write_pydantic_to_db(
         db.execute(
             f"""
             create table if not exists 
-            {table}(run_id string, time_start timestamp_ltz default current_timestamp, time_end timestamp_ltz default current_timestamp, raw variant)
+            {table}(job_id string, time_start timestamp_ltz default current_timestamp, time_end timestamp_ltz default current_timestamp, raw variant)
             """
         )
         db.execute(
-            f"""insert into {table}(run_id, time_start, time_end, raw)
+            f"""insert into {table}(job_id, time_start, time_end, raw)
                 select '{job_id}', '{time_start}', '{time_end}', parse_json($${blob.json()}$$);
             """
         )
@@ -95,11 +95,11 @@ def write_metadata_json_to_db(
             db.execute(
                 f"""
                 create table if not exists 
-                {table}(run_id string, time_start timestamp_ltz default current_timestamp, time_end timestamp_ltz default current_timestamp, raw variant)
+                {table}(job_id string, time_start timestamp_ltz default current_timestamp, time_end timestamp_ltz default current_timestamp, raw variant)
                 """
             )
             db.execute(
-                f"""insert into {table}(run_id, time_start, time_end, raw)
+                f"""insert into {table}(job_id, time_start, time_end, raw)
                     select '{job_id}', '{time_start}', '{time_end}', parse_json($${blob}$$);
                 """
             )
@@ -123,11 +123,11 @@ def write_metadata_text_to_db(
             db.execute(
                 f"""
                 create table if not exists 
-                {table}(run_id string, time_start timestamp_ltz default current_timestamp,time_end timestamp_ltz default current_timestamp, raw text)
+                {table}(job_id string, time_start timestamp_ltz default current_timestamp,time_end timestamp_ltz default current_timestamp, raw text)
                 """
             )
             db.execute(
-                f"""insert into {table}(run_id, time_start, time_end, raw)
+                f"""insert into {table}(job_id, time_start, time_end, raw)
                     select '{job_id}', '{time_start}', '{time_end}', '{text}';
                 """
             )
@@ -141,7 +141,7 @@ def write_job_run_result_to_db(
     time_start: datetime,
     time_end: datetime,
     actions: str,
-    results: str,
+    success: str,
     message: str,
     connection: Connection = SnowflakeConnection,
 ):
@@ -151,12 +151,12 @@ def write_job_run_result_to_db(
             db.execute(
                 f"""
                 create table if not exists 
-                meta.job_runs(run_id string, time_start timestamp_ltz default current_timestamp,time_end timestamp_ltz default current_timestamp, actions text, results text, message text)
+                meta.job_run(job_id string, time_start timestamp_ltz default current_timestamp,time_end timestamp_ltz default current_timestamp, actions text, success text, message text)
                 """
             )
             db.execute(
-                f"""insert into meta.job_runs(run_id, time_start, time_end, actions, results, message)
-                    select '{job_id}', '{time_start}', '{time_end}', '{actions}', '{results}', '{message}';
+                f"""insert into meta.job_run(job_id, time_start, time_end, actions, success, message)
+                    select '{job_id}', '{time_start}', '{time_end}', '{actions}', '{success}', '{message}';
                 """
             )
     except Exception as e:
@@ -214,7 +214,7 @@ class JobRunner:
             # persist jobs metadata
             write_pydantic_to_db(
                 self.profile,
-                f"{self.db}.{self.metadata_schema}.inbound_run_result",
+                f"{self.db}.{self.metadata_schema}.ingest_run",
                 self.job_id,
                 time_start,
                 time_end,
@@ -251,7 +251,7 @@ class JobRunner:
 
                 write_metadata_json_to_db(
                     self.profile,
-                    f"{self.db}.{self.metadata_schema}.ingest_run",
+                    f"{self.db}.{self.metadata_schema}.transform_run",
                     self.job_id,
                     time_start,
                     time_end,
@@ -337,30 +337,35 @@ class JobRunner:
     async def run(self, request: Request = None) -> JobResult:
         time_start = datetime.now(timezone.utc)
 
-        results = []
+        results = {}
+        result = True
         res = JobResult(result="FAILED")
 
         # ingest data
         if Actions.INGEST in self.actions:
             res = await self.ingest()
-            results.append(res)
+            results["ingest"] = res.to_json()
             LOGGER.info(res)
             if request and res.result == "DONE":
                 request.app.state.status[self.job_id] = "INGEST DONE"
+            if res.result != "DONE":
+                result = False
 
         if res.result == "DONE" or Actions.INGEST not in self.actions:
             # transform data
             if Actions.TRANSFORM in self.actions:
                 res = await self.transform()
-                results.append(res)
+                results["transform"] = res.to_json()
                 if request and res.result == "DONE":
                     request.app.state.status[self.job_id] = "TRANSFORM DONE"
+                if res.result != "DONE":
+                    result = False
                 LOGGER.info(res)
 
             # generate docs
             if Actions.METADATA in self.actions:
                 res = await self.dbt_generate_docs()
-                results.append(res)
+                results["metadata"] = res.to_json()
                 if request and res.result == "DONE":
                     request.app.state.status[self.job_id] = "METADATA DONE"
                 LOGGER.info(res)
@@ -368,9 +373,11 @@ class JobRunner:
             # run soda tests
             if Actions.SODA in self.actions:
                 res = await self.run_soda_tests()
-                results.append(res)
+                results["soda"] = res.to_json()
                 if request and res.result == "DONE":
                     request.app.state.status[self.job_id] = "SODA DONE"
+                if res.result != "DONE":
+                    result = False
                 LOGGER.info(res)
 
             # signal job completed
@@ -386,8 +393,8 @@ class JobRunner:
             self.job_id,
             time_start,
             time_end,
-            "".join(str(a) for a in self.actions),
-            "".join(str(r) for r in results),
+            json.dumps(results, default=str),
+            str(result),
             "",
         )
 

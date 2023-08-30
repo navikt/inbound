@@ -89,7 +89,7 @@ class SQLAlchemyConnection(BaseConnection):
                     LOGGER.info(
                         f"Returning batch number {chunk_number} of length {len(df)}"
                     )
-                    job_res.result = ("DONE",)
+                    job_res.result = "DONE"
                     job_res.start_date_time = chunk_start_date_time
                     job_res.end_date_time = datetime.datetime.now()
                     job_res.memory = tracemalloc.get_traced_memory()
@@ -107,7 +107,7 @@ class SQLAlchemyConnection(BaseConnection):
 
         except Exception as e:
             LOGGER.error(f"Could not read from {query}")
-            job_res.result = ("FAILED",)
+            job_res.result = "FAILED"
             job_res.start_date_time = chunk_start_date_time
             job_res.end_date_time = datetime.datetime.now()
             job_res.memory = tracemalloc.get_traced_memory()
