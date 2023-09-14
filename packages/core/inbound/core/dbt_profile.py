@@ -102,7 +102,7 @@ class DbtProfile(BaseSettings):
     profiles_dir: Optional[str] = None
 
     model_config: SettingsConfigDict(
-        # extra="allow",
+        extra="allow",
         default_profiles_dir=Path.home() / ".dbt",
         env_prefix="DBT_",
         env_nested_delimiter="__",
