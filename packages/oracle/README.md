@@ -1,1 +1,1 @@
-# Inbound DuckDB connection
+# Inbound Oracle connection

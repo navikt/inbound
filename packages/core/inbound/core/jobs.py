@@ -3,6 +3,7 @@ import json
 import os
 import tempfile
 import tracemalloc
+from enum import Enum
 from pathlib import Path
 from typing import Union
 
@@ -16,6 +17,11 @@ from inbound.core.jobs_result import JobsResult
 from inbound.core.logging import LOGGER
 from inbound.core.models import *
 from inbound.core.utils import generate_id
+
+
+class Mode(Enum):
+    SEQUENTIAL = 1
+    PARALELL = 2
 
 
 def run_job(source: Union[str, dict], profiles_dir: Path = None) -> JobsResult:
@@ -92,7 +98,7 @@ def _get_json_config(source: Union[str, dict]):
         LOGGER.info(f"Error loading jobs configuration from {source}. {e}")
 
 
-def _run_jobs_in_list(jobs: List) -> JobsResult:
+def _run_jobs_in_list(jobs: List, mode: Mode = Mode.SEQUENTIAL) -> JobsResult:
     # Load plugins for source og target
     source_types = [job.source.type for job in jobs]
     sink_types = [job.target.type for job in jobs]

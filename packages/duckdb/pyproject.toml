@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "inbound-duckdb"
+version = "0.0.1"
+description = "Inbound File Connector"
+authors = [ "Virksomhetsdatalaget <virksomhetsdatalaget@nav.no>", ]
+packages = [{ include = "inbound" }]
+
+[tool.poetry.dependencies]
+python = "^3.10.0"
+duckdb = "0.8.0"
+pyarrow = ">=10.0.1,<10.1.0" # snowflake python connector limitation
+
+inbound-core = { version = "0.0.1" }
+
+[tool.poetry.group.dev.dependencies]
+inbound-core = { path="../core", develop=true }
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+

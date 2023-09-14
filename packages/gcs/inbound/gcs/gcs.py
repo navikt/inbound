@@ -23,6 +23,7 @@ class GCSConnection(BaseConnection):
         super().__init__(profile, __file__)
 
         self.bucket = None
+        self.spec = profile.spec
         self.bucket_name = profile.spec.bucket or os.getenv("INBOUND_GCS_BUCKET")
         self.prefix = profile.spec.prefix or None
         self.blob_name = profile.spec.blob or os.urandom(24).hex()

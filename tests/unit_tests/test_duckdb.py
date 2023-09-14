@@ -4,7 +4,7 @@ from inbound.core.models import Profile, Spec
 from inbound.duckdb import DuckDBConnection
 from tests.utils.dataframes import df
 
-credentials = Spec(name="duckdb", database=None, table="test")
+credentials = Spec(name="duckdb", database=":memory:", table="test")
 profile = Profile(spec=credentials)
 
 
@@ -40,6 +40,3 @@ def test_drop_table():
         ret = db.drop(profile.spec.table)
 
         assert ret.result == "DONE"
-
-
-test_roundtrip()

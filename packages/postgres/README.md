@@ -1,1 +1,1 @@
-# Inbound DuckDB connection
+# Inbound PostgreSQL connection

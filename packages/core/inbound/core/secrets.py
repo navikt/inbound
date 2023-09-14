@@ -11,13 +11,20 @@ from inbound.core.settings import Settings
 
 
 def set_env_variables_from_secrets(settings: Settings = None) -> None:
-    if (
-        os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") is not None
-        or os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON") is not None
-    ):
-        set_env_variables_from_secret_manager(settings)
 
-    secrets_path = os.environ.get("INBOUND_SECRETS_PATH", settings.spec.secrets_path)
+    # try to get secrets from secret manager
+    try:
+        set_env_variables_from_secret_manager(settings)
+    except Exception as e:
+        print(e)
+
+    secrets_path = os.environ.get("INBOUND_SECRETS_PATH")
+
+    if secrets_path is None:
+        if settings is not None:
+            secrets_path = settings.spec.secrets_path
+        else:
+            secrets_path = "/var/run/secrets"
 
     set_environment_variables_from_directory(secrets_path)
 
@@ -38,7 +45,7 @@ def set_env_variables_from_secret_manager(settings: Settings = None) -> None:
 
         except Exception as e:
             LOGGER.info(
-                f"Error accessing secret manager with default credentials. Error {e}"
+                f"Error accessing secret manager with GOOGLE_APPLICATION_CREDENTIALS. Error {e}"
             )
     elif os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON") is not None:
         LOGGER.info(
@@ -60,6 +67,15 @@ def set_env_variables_from_secret_manager(settings: Settings = None) -> None:
                 Error accessing secret manager with GOOGLE_APPLICATION_CREDENTIALS_JSON.
                 Error {e}
                 """
+            )
+    else:
+        try:
+            LOGGER.info("get secret manager client using default credentials")
+            secret_manager_client = secretmanager.SecretManagerServiceClient()
+
+        except Exception as e:
+            LOGGER.info(
+                f"Error accessing secret manager with default credentials. Error {e}"
             )
 
     set_secrets_from_secret_manager(settings, secret_manager_client)
@@ -92,8 +108,22 @@ def set_secrets_from_secret_manager(settings: Settings, secret_manager_client):
                 secrets = response.payload.data.decode("UTF-8")
 
                 # Set secrets as environment variables
-                for key, value in json.loads(secrets).items():
-                    os.environ[key.upper()] = value
+                try:
+                    for key, value in json.loads(secrets).items():
+                        os.environ[key.upper()] = value
+                except:
+                    LOGGER.info(
+                        "Environment variables not stored as json in secret manager"
+                    )
+
+                try:
+                    for line in secrets.splitlines():
+                        element = line.split("=")
+                        os.environ[element[0].strip()] = element[1].strip()
+                except:
+                    LOGGER.info(
+                        "Environment variables not stored as list in secret manager"
+                    )
 
                 LOGGER.info(
                     "Environment variables set from secrets stored in secret manager"

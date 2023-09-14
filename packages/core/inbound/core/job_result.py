@@ -83,7 +83,7 @@ class JobResult(BaseModel):
             "result": self.result,
             "rows": str(self.rows),
             "size": str(self.size),
-            "start": self.start_date_time,
+            "start": self.start_date_time.isoformat(),
             "duration": str(self.duration_rounded),
             "memory size": str(self.memory_size),
             "memory peak": str(self.memory_peak),
