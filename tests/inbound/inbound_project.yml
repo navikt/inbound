@@ -2,24 +2,23 @@ kind: "inbound"
 version: "0.0.1"
 
 metadata:
-  name: "inbound"
+  name: "test"
 
-dbt:
-  profiles_dir: "./dbt"
-  profile: "snowflake"
-  target: "dev"
+tags:
+  - name: "PII"
+    policy: "Mask"
 
-logging: 
+logging:
   local_path: "./logs"
   upload: True
-  profile: "snowflake" 
+  profile: "test"
 
 spec:
-  secrets_path: "/var/run/secrets/nais.io/vault"
+  secrets_path: "/var/run/secrets"
   gcp:
-    project_id: "virksomhetsdatalaget-dev-30e3"
+    project_id: "test_project_id"
     secrets:
-      - name: "snowflake-account"
+      - name: "test_secret_name"
         version: "latest"
-    syncbucket: "sync-service"
-    metadatabucket: "sync-service"
+    syncbucket: "test_bucket"
+    metadatabucket: "test_metadata_bucket"

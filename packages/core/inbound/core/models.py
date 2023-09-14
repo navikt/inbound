@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Any, DefaultDict, Dict, List, Optional, Protocol, Union
 
-from pydantic import BaseModel, Field, create_model
+from pydantic import BaseModel, Field, RootModel, create_model
 
 from inbound.core.utils import generate_id
 
@@ -18,7 +18,7 @@ class SyncMode(Enum):
 
 class Bookmark(BaseModel):
     column: str
-    last_value: Any
+    last_value: Any = None
 
 
 class OracleSpec(BaseModel):
@@ -34,7 +34,7 @@ class BaseSpec(BaseModel):
     chunksize: Optional[int] = 10000
     client_email: Optional[str] = None
     private_key: Optional[str] = None
-    table_schema: Optional[List[Dict[str, str]]]
+    table_schema: Optional[List[Dict[str, str]]] = None
     database: Optional[str] = None
     database_schema: Optional[str] = Field(None, alias="schema")
     transformer: Optional[str] = None
@@ -66,10 +66,10 @@ class SQLAlchemySpec(BaseSpec):
 class FileSpec(BaseSpec):
     path: Optional[str] = None
     url: Optional[str] = None
-    type: str = "csv"
+    type: Optional[str] = "csv"
     sep: Optional[str] = ","
     encoding: Optional[str] = "utf-8"
-    sheet_name: Optional[str] = "Sheet1"
+    sheet_name: Optional[Union[str, int]] = "Sheet1"
     header: Optional[int] = 0
 
 
@@ -110,8 +110,8 @@ class ProfileConfig(BaseModel):
 class ColumnModel(BaseModel):
     column_name: str
     data_type: str
-    data_length: Optional[int]
-    data_precision: Optional[int]
+    data_length: Optional[int] = None
+    data_precision: Optional[int] = None
     nullable: str
 
 
@@ -121,7 +121,7 @@ class ACLModel(BaseModel):
 
 
 class JobModel(BaseModel):
-    name: Optional[str]
+    name: Optional[str] = None
     job_id: Optional[str] = generate_id()
     acl: Optional[ACLModel] = None
     meta: Optional[Dict] = None
@@ -145,16 +145,16 @@ class SodaSpec(BaseModel):
     database_schema: str = Field(None, alias="schema")
 
 
-class SodaProfile(BaseModel):
-    __root__: Dict[str, SodaSpec]
+class SodaProfile(RootModel):
+    root: Dict[str, SodaSpec]
 
     def __getitem__(self, item):
-        return self.__root__[item]
+        return self.root[item]
 
     def dict(self, **kwargs):
         kwargs.setdefault("by_alias", True)
-        return super().dict(**kwargs)
+        return super().model_dump(**kwargs)
 
     def json(self, **kwargs):
         kwargs.setdefault("by_alias", True)
-        return super().json(**kwargs)
+        return super().model_dump_json(**kwargs)

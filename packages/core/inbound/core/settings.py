@@ -1,9 +1,15 @@
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import yaml
-from pydantic import BaseModel, BaseSettings
+from pydantic import BaseModel
+from pydantic.fields import FieldInfo
+from pydantic_settings import (
+    BaseSettings,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
 
 from inbound.core.logging import LOGGER
 
@@ -14,9 +20,9 @@ class BookmarkModel(BaseModel):
 
 class GCPModel(BaseModel):
     project_id: str
-    secrets: Optional[List]
-    syncbucket: Optional[str]
-    metadatabucket: Optional[str]
+    secrets: Optional[List] = None
+    syncbucket: Optional[str] = None
+    metadatabucket: Optional[str] = None
 
 
 class SpecModel(BaseModel):
@@ -31,85 +37,73 @@ class MetadataModel(BaseModel):
 
 
 class DBTModel(BaseModel):
-    profiles_dir: Optional[str]
-    profile: Optional[str]
+    profiles_dir: Optional[str] = None
+    profile: Optional[str] = None
     target: str
 
 
 class TagModel(BaseModel):
-    name: Optional[str]
-    policy: Optional[str]
+    name: Optional[str] = None
+    policy: Optional[str] = None
 
 
 class LoggingModel(BaseModel):
-    local_path: Optional[str]
-    upload: Optional[bool]
-    profile: Optional[str]
+    local_path: Optional[str] = None
+    upload: Optional[bool] = None
+    profile: Optional[str] = None
 
 
-class InboundModel(BaseModel):
-    spec: Optional[SpecModel]
-    metadata: Optional[MetadataModel]
-    version: str
-    logging: Optional[LoggingModel]
-    dbt: Optional[DBTModel]
-    tags: Optional[TagModel]
+class YamlSettingsSource(BaseSettings):
+    def get_inbound_path(self) -> Path:
+        if os.getenv("INBOUND_PROJECT_DIR"):
+            return os.getenv("INBOUND_PROJECT_DIR")
+        if Path(Path.home() / ".inbound").exists():
+            return Path.home() / ".inbound"
+        else:
+            return Path.cwd() / "inbound"
+
+    def load_yaml_config(self, path: str | None = None):
+        if not (Path(path) / "inbound_project.yml").is_file():
+            LOGGER.info(f"Error loading settings from {path}")
+            raise ValueError(f"Error loading settings from {path}")
+
+        with open(Path(path) / "inbound_project.yml", "r") as stream:
+            try:
+                return yaml.safe_load(stream)
+            except yaml.YAMLError as e:
+                LOGGER.info(f"Error loading settings from {path}")
+
+    def __call__(self) -> Dict[str, Any]:
+        path = self.get_inbound_path()
+        settings_json = self.load_yaml_config(path)
+        return settings_json
 
 
 class Settings(BaseSettings):
-    spec: Optional[SpecModel]
-    metadata: Optional[MetadataModel]
-    version: Optional[str]
-    logging: Optional[LoggingModel]
-    dbt: Optional[DBTModel]
-    tags: Optional[TagModel]
+    kind: Optional[str] = None
+    spec: Optional[SpecModel] = None
+    metadata: Optional[MetadataModel] = None
+    version: Optional[str] = None
+    logging: Optional[LoggingModel] = None
+    dbt: Optional[DBTModel] = None
+    tags: Union[List[TagModel], TagModel, None] = None
 
-    class Config:
+    model_config = SettingsConfigDict(
+        extra="allow", env_prefix="INBOUND_", env_nested_delimiter="__"
+    )
 
-        default_settings_path = Path.home() / ".inbound"
-        if not Path(default_settings_path).exists():
-            default_settings_path = Path.cwd() / "inbound"
-        env_prefix = "INBOUND_"
-        env_nested_delimiter = "__"
-        fields = {"secret_dir": {"env": "INBOUND_SECRETS_DIR"}}
-
-        @classmethod
-        def customise_sources(
-            cls,
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: Type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> Tuple[PydanticBaseSettingsSource, ...]:
+        return (
             init_settings,
             env_settings,
+            YamlSettingsSource(settings_cls),
             file_secret_settings,
-        ):
-            return (
-                init_settings,
-                env_settings,
-                _yml_config_settings_source,
-                file_secret_settings,
-            )
-
-
-def _yml_config_settings_source(settings: BaseSettings) -> Dict[str, Any]:
-    path = os.getenv("INBOUND_PROJECT_DIR", settings.__config__.default_settings_path)
-    settings_json = _load_yaml_config(path)
-    model = InboundModel(**settings_json)
-    return dict(model)
-
-
-def _load_yaml_config(path: str | None = None):
-    env_variable = "INBOUND_PROJECT_DIR"
-    if path is None:
-        path = os.getenv(env_variable)
-
-    if path is None:
-        LOGGER.info(f"Please provide environment variable {env_variable}")
-        raise ValueError(f"Error getting env variable {env_variable}")
-
-    if not (Path(path) / "inbound_project.yml").is_file():
-        LOGGER.info(f"Error loading settings from {path}")
-        raise ValueError(f"Error loading settings from {path}")
-
-    with open(Path(path) / "inbound_project.yml", "r") as stream:
-        try:
-            return yaml.safe_load(stream)
-        except yaml.YAMLError as e:
-            LOGGER.info(f"Error loading settings from {path}")
+        )
