@@ -1,12 +1,17 @@
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Type
 
 import yaml
 from jinja2 import Template
-from pydantic import BaseModel, BaseSettings
-from pydantic.env_settings import SettingsSourceCallable
+from pydantic import BaseModel
+from pydantic.fields import FieldInfo
+from pydantic_settings import (
+    BaseSettings,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
 
 from inbound.core.environment import get_env
 from inbound.core.logging import LOGGER
@@ -45,93 +50,93 @@ class DbtProfileModel(BaseModel):
         return None
 
 
-class DbtProfile(BaseSettings):
-    profile: Optional[DbtProfileModel]
-    profile_name: Optional[str]
-    profiles_dir: Optional[str]
+class YamlSettingsSource(PydanticBaseSettingsSource):
+    def get_dbt_path(self) -> Path | None:
+        profiles_dir = (
+            os.getenv("DBT_PROFILES_DIR")
+            or self.config.get("profiles_dir")
+            or Path.cwd().parent / "dbt"
+            or Path.cwd() / "dbt"
+        )
 
-    class Config:
-        default_profiles_dir = Path.home() / ".dbt"
-        env_prefix = "DBT_"
-        env_nested_delimiter = "__"
-
-        @classmethod
-        def customise_sources(
-            cls,
-            init_settings: SettingsSourceCallable,
-            env_settings: SettingsSourceCallable,
-            file_secret_settings: SettingsSourceCallable,
-        ) -> Tuple[SettingsSourceCallable, ...]:
-            return (
-                init_settings,
-                env_settings,
-                dbt_profile_from_yml,
-                file_secret_settings,
+        if not (Path(profiles_dir) / "profiles.yml").is_file():
+            LOGGER.error(
+                f"Error loading dbt profile from {Path(profiles_dir)}. Please provide a path or set the 'DBT_PROFILES_DIR' environment variable"
             )
+            return None
 
+        return Path(profiles_dir)
 
-def is_dbt_profiles_dir(profiles_dir: str):
-    if not profiles_dir:
-        return False
+    def get_field_value():
+        pass
 
-    path = Path(profiles_dir) / "profiles.yml"
-    if path.is_file():
-        return True
-    return False
-
-
-def dbt_profile_from_yml(settings: BaseSettings) -> Dict[str, Any]:
-    profiles_dir = os.getenv("DBT_PROFILES_DIR")
-
-    if profiles_dir is None:
-        if is_dbt_profiles_dir(Path.cwd() / "dbt"):
-            profiles_dir = Path.cwd() / "dbt"
-        else:
-            profiles_dir = settings.__config__.default_profiles_dir
-
-    if not is_dbt_profiles_dir(profiles_dir):
-        LOGGER.error(
-            f"Error loading dbt profile from {Path(profiles_dir)}. Please provide a path or set the 'DBT_PROFILES_DIR' environment variable"
-        )
-        return {}
-
-    path = Path(profiles_dir) / "profiles.yml"
-    LOGGER.info(f"Loading dbt profile from {path}")
-    if path.is_file():
+    def load_yaml_config(self):
         try:
-            with open(path, "r") as stream:
-                # Get dbt profile from profiles.yml file
-                try:
-                    profile_json = yaml.safe_load(stream)
-                    # Replace 'env_var's in template
-                    temp = Template(json.dumps(profile_json)).render(env_var=get_env)
-                    final_json = json.loads(temp, strict=False)
+            with open(self.get_dbt_path() / "profiles.yml", "r") as stream:
+                return yaml.safe_load(stream)
+        except yaml.YAMLError as e:
+            LOGGER.info(f"Error loading dbt profile from {self.get_dbt_path()}")
 
-                    profile = DbtProfileModel(elements=final_json)
-                    return {"profile": profile}
-                except Exception as e:
-                    LOGGER.error(f"Error parsing dbt profile from {path}. {e}")
+    def get_dbt_profile(self) -> DbtProfileModel:
+        path = self.get_dbt_path()
+        LOGGER.info(f"Loading dbt profile from {path}")
+        try:
+            profile_json = self.load_yaml_config()
+            # Replace 'env_var's in template
+            temp = Template(json.dumps(profile_json)).render(env_var=get_env)
+            final_json = json.loads(temp, strict=False)
+
+            return DbtProfileModel(elements=final_json)
         except Exception as e:
-            LOGGER.error(f"Error loading dbt profile from {path}. {e}")
-    else:
-        LOGGER.info(
-            f"Error loading dbt profile from {path}. Please provide a path or set the 'DBT_PROFILE_DIR' environment variable"
-        )
+            LOGGER.error(f"Error parsing dbt profile from {path}. {e}")
 
-    return {}
+    def __call__(self) -> Dict[str, DbtProfileModel]:
+        model = self.get_dbt_profile()
+        return {"profile": model}
+
+
+class DbtProfile(BaseSettings):
+    profile: Optional[DbtProfileModel] = None
+    profile_name: Optional[str] = None
+    profile_target: Optional[str] = None
+    profiles_dir: Optional[str] = None
+
+    model_config: SettingsConfigDict(
+        extra="allow",
+        default_profiles_dir=Path.home() / ".dbt",
+        env_prefix="DBT_",
+        env_nested_delimiter="__",
+    )
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: Type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> Tuple[PydanticBaseSettingsSource, ...]:
+        return (
+            init_settings,
+            env_settings,
+            YamlSettingsSource(settings_cls),
+            file_secret_settings,
+        )
 
 
 def dbt_connection_params(
     profile: str, target: None, profiles_dir: str | None = None, *args, **kwargs
 ) -> Dict[str, Any] | None:
-    profiles = DbtProfile(profiles_dir=profiles_dir).profile.elements
+    profiles = DbtProfile(
+        profile_name=profile, profile_target=target, profiles_dir=profiles_dir
+    ).profile.elements
     LOGGER.info(f"Loaded profiles {str(list(profiles.keys()))}")
     if not profiles:
         LOGGER.error(
             f"Profile with name {profile} and target {target} not found in profile_dir {profiles_dir}"
         )
         return {}
-
     LOGGER.info(f"Loading target: {target} from profile {profile}")
     target = target or profiles[profile]["target"] or "dev"
     LOGGER.info(f"Loading profile {profile}. Target: {target}")

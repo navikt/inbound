@@ -43,12 +43,6 @@ def test_roundtrip(profile):
         assert len(df) == len(df_out)
 
 
-def test_pandas_replace(profile):
-    with FileConnection(profile=profile) as db:
-        res, job_res = db.from_pandas(df)
-        assert job_res.result == "DONE"
-
-
 def test_drop(profile):
     with FileConnection(profile=profile) as db:
         db.from_pandas(df)

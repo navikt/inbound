@@ -25,12 +25,12 @@ class Check(BaseModel):
     location: Location
     dataSource: str
     table: str
-    filter: Any
-    column: Any
+    filter: Any = None
+    column: Any = None
     metrics: List[str]
     outcome: str
     outcomeReasons: List
-    archetype: Any
+    archetype: Any = None
 
 
 class Log(BaseModel):
@@ -38,12 +38,12 @@ class Log(BaseModel):
     message: str
     timestamp: str
     index: int
-    doc: Any
-    location: Any
+    doc: Any = None
+    location: Any = None
 
 
 class Model(BaseModel):
-    definitionName: Any
+    definitionName: Any = None
     defaultDataSource: str
     dataTimestamp: str
     scanStartTimestamp: str

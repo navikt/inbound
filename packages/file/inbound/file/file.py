@@ -70,11 +70,14 @@ class FileConnection(BaseConnection):
             if _isExcel(self.path):
                 df = pandas.read_excel(
                     self.path,
-                    sheet_name=self.sheet_name,
+                    sheet_name=str(self.sheet_name),
                     header=self.header,
                 )
                 job_res.end_date_time = datetime.datetime.now()
                 job_res.memory = tracemalloc.get_traced_memory()
+                job_res.rows = len(df)
+                job_res.chunk_number = 1
+                job_res.result = "DONE"
                 yield df, job_res
             else:  # default to csv
                 file_reader = pandas.read_csv(
@@ -131,7 +134,7 @@ class FileConnection(BaseConnection):
         try:
             if mode == SyncMode.REPLACE:
                 if _isExcel(self.path):
-                    df.to_excel(self.path, sheet_name=self.sheet_name, index=False)
+                    df.to_excel(self.path, sheet_name=str(self.sheet_name), index=False)
                 else:
                     df.to_csv(
                         self.path,

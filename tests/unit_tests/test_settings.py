@@ -7,16 +7,16 @@ def test_settings_spec():
     current_env = os.getenv("INBOUND_VERSION")
     if os.getenv("INBOUND_VERSION") is not None:
         os.environ.pop("INBOUND_VERSION")
-    set = Settings()
-    assert set.version == "0.0.1"
+    settings = Settings()
+    assert settings.version == "0.0.1"
     if current_env is not None:
         os.environ["INBOUND_VERSION"] = current_env
 
 
 def test_settings_env():
     current_env = os.getenv("INBOUND_VERSION")
-    os.environ["INBOUND_VERSION"] = "0.0.3"
-    set = Settings()
-    assert set.version == "0.0.3"
+    os.environ["INBOUND_VERSION"] = "0.0.0"
+    settings = Settings()
+    assert settings.version == "0.0.0"
     if current_env is not None:
         os.environ["INBOUND_VERSION"] = current_env

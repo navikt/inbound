@@ -86,7 +86,7 @@ def test_sf_connection():
             assert False
 
     params = dict()
-    spec_dict = spec.dict(by_alias=True)
+    spec_dict = spec.model_dump(by_alias=True)
     for param in sf_conn_params:
         if param in spec_dict.keys():
             params[param] = spec_dict.get(param)
@@ -98,6 +98,3 @@ def test_sf_connection():
         assert False
 
     assert True
-
-
-test_sf_connection()
