@@ -14,7 +14,6 @@ from inbound.core import JobResult, Profile, connection_factory, logging
 from inbound.core.common import retry_with_backoff
 from inbound.core.connection import BaseConnection
 from inbound.core.models import SyncMode
-from inbound.gcs import GCSConnection
 
 LOGGER = logging.LOGGER
 
