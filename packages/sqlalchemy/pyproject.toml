@@ -7,9 +7,9 @@ packages = [{ include = "inbound" }]
 
 [tool.poetry.dependencies]
 python = "^3.10.0"
-sqlalchemy = ">=1.4.0,<2.0.0"
 
 inbound-core = { version = "0.0.1" }
+sqlalchemy = "1.4.49" #2.0 not supported by snowflake-sqlalchemy yet
 
 [tool.poetry.group.dev.dependencies]
 inbound-core = { path="../core", develop=true }

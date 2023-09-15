@@ -25,6 +25,7 @@ flake8 = "^6.0.0"
 isort = "^5.12.0"
 pylint = "^2.16.3"
 pyright = "^1.1.296"
+build = "^1.0.3"
 
 inbound-core = { path="./packages/core", develop=true }
 inbound-file = { path="./packages/file", develop=true }

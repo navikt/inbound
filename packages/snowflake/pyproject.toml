@@ -7,12 +7,12 @@ packages = [{ include = "inbound" }]
 
 [tool.poetry.dependencies]
 python = "^3.10.0"
-snowflake-sqlalchemy = "1.4.7"
-snowflake-connector-python = "3.0.3"
 
 inbound-core = { version = "0.0.1" }
 inbound-sqlalchemy = { version = "0.0.1" }
 inbound-gcs = { version = "0.0.1" }
+snowflake-sqlalchemy = "^1.5.0"
+snowflake-connector-python = "^3.2.0"
 
 [tool.poetry.group.dev.dependencies]
 inbound-core = { path="../core", develop=true }
