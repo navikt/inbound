@@ -40,3 +40,6 @@ def test_drop_table():
         ret = db.drop(profile.spec.table)
 
         assert ret.result == "DONE"
+
+
+test_write_pandas_append()
