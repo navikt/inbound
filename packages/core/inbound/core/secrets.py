@@ -11,7 +11,6 @@ from inbound.core.settings import Settings
 
 
 def set_env_variables_from_secrets(settings: Settings = None) -> None:
-
     # try to get secrets from secret manager
     try:
         set_env_variables_from_secret_manager(settings)
@@ -118,7 +117,7 @@ def set_secrets_from_secret_manager(settings: Settings, secret_manager_client):
 
                 try:
                     for line in secrets.splitlines():
-                        element = line.split("=")
+                        element = line.split("=", 1)
                         os.environ[element[0].strip()] = element[1].strip()
                 except:
                     LOGGER.info(
