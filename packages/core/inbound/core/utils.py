@@ -51,7 +51,7 @@ def clean_column_names(s):
 
 
 def get_target_dir() -> Path:
-    target_dir = os.getenv("INBOUND_TARGET", Path(Path.cwd() / "target"))
+    target_dir = Path(Path.cwd() / "target")
     target_dir.mkdir(parents=False, exist_ok=True)
     return target_dir
 

@@ -85,4 +85,4 @@ class JobsResult(BaseModel):
             log_file.write(json_str)
 
 
-JobsResult.update_forward_refs()
+JobsResult.model_rebuild()
