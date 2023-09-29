@@ -168,7 +168,7 @@ class JobRunner:
         self,
         db: str,
         profile: str,
-        target: str = "transformer",
+        target: str = os.getenv("DBT_TARGET", "transformer"),
         metadata_schema: str = "META",
         job_file_name: str | None = None,
         connection: Connection | None = None,
@@ -304,10 +304,7 @@ class JobRunner:
         try:
             scan = self.soda()
             scan.disable_telemetry()
-            scan.set_data_source_name("faktura")
-            """  soda_profile = soda_profile_yml(
-                "data_source faktura", "snowflake_faktura", "loader", "./dbt"
-            ) """
+            scan.set_data_source_name("inbound")
             soda_profile = get_soda_profile(self.profile)
             scan.add_configuration_yaml_str(soda_profile)
             scan.add_sodacl_yaml_files("./soda")
