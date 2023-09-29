@@ -2,6 +2,7 @@ import datetime
 import os
 import tracemalloc
 from dataclasses import dataclass
+from pathlib import Path
 
 import inbound.core.profiler as profiler
 from inbound.core.connection import Connection
@@ -17,6 +18,7 @@ class Job:
     source: Connection
     sink: Connection
     config: JobModel
+    output_dir: Path = None
 
     def run(self) -> JobResult:
         job_id = self.config.job_id
@@ -44,7 +46,7 @@ class Job:
                                 source.profile.spec, df, job_id
                             )
                             # log result of data transformation
-                            transform_job_result.log()
+                            transform_job_result.log(self.output_dir)
 
                         # add metadata if specified
                         if source.profile.spec.format is not None:
@@ -52,7 +54,7 @@ class Job:
                                 source.profile.spec, df, job_id
                             )
                             # log result of data enrichments
-                            metadata_job_result.log()
+                            metadata_job_result.log(self.output_dir)
 
                         # write to sink
                         _, batch_job_result = sink.from_pandas(
@@ -65,7 +67,7 @@ class Job:
                         if os.getenv("INBOUND_PROFILING") is not None:
                             profiler.snapshot()
                         # log result persisting data
-                        batch_job_result.log()
+                        batch_job_result.log(self.output_dir)
 
             job_result.result = "DONE"
         except Exception as e:
@@ -89,13 +91,15 @@ class JobFactory:
     source_class: Connection
     sink_class: Connection
     config: JobModel
+    output_dir: Path = None
 
     def __call__(self) -> Job:
         source = self.source_class
         sink = self.sink_class
         config = self.config
+        output_dir = self.output_dir
         # validate_job_schema(config)
-        return Job(source, sink, config)
+        return Job(source, sink, config, output_dir)
 
 
 def run(job: Job) -> JobResult:

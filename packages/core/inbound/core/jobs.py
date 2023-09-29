@@ -117,7 +117,7 @@ def _run_jobs_in_list(
         )
         source_connector = connection_factory.create(job.source)
         sink_connector = connection_factory.create(job.target)
-        job_instance = JobFactory(source_connector, sink_connector, job)()
+        job_instance = JobFactory(source_connector, sink_connector, job, output_dir)()
         try:
             res = job_instance.run()
             jobs_result.end_date_time = datetime.datetime.now()

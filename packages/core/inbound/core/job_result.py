@@ -95,11 +95,13 @@ class JobResult(BaseModel):
         res = f"""Job: {self.result}. {self.job_id}: {self.task_name}. Rows: {self.rows}. Chunk: {self.chunk_number}. Start: {self.start_date_time.strftime('%Y-%m-%d %H:%M:%S')}. Duration: {str(self.duration_rounded)}. Memory: {str(self.memory_size)}/{str(self.memory_peak)}"""
         return res
 
-    def log(self):
+    def log(self, out_dir: Path = None):
         LOGGER.info(str(self))
 
         json_str = json.dumps(self.to_json(), default=str)
-        with open(str(Path(get_target_dir() / "job_result.json")), "a+") as log_file:
+        with open(
+            str(out_dir or Path(get_target_dir() / "job_result.json")), "a+"
+        ) as log_file:
             log_file.write(json_str)
 
 
