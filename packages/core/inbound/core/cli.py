@@ -53,16 +53,13 @@ def docs():
 
 @inbound.command()
 @click.option(
-    "--profiles-dir", envvar="INBOUND_PROFILES_DIR", default="./inbound", required=False
-)
-@click.option(
     "--project-dir",
     envvar="inbound_PROJECT_DIR",
     default="./inbound/jobs",
     required=False,
 )
 @click.option("--job", default=None, help="Job to be run", required=False)
-def run(profiles_dir, project_dir, job):
+def run(project_dir, job):
     dir = here
     if Path(project_dir).is_dir():
         dir = project_dir
@@ -72,10 +69,10 @@ def run(profiles_dir, project_dir, job):
     if job:  # run single job
         source = os.path.join(dir, job)
         click.echo(f"run job: {source}")
-        return run_job(source, profiles_dir)
+        return run_job(source)
     else:  # run all jobs in jobs directory
         click.echo(f"run all jobs in directory: {dir}")
-        return run_jobs(dir, profiles_dir)
+        return run_jobs(dir)
 
 
 """ @inbound.command

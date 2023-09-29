@@ -75,11 +75,13 @@ class JobsResult(BaseModel):
 
         return res
 
-    def log(self):
+    def log(self, output_dir: Path = None):
         LOGGER.info(str(self))
 
         json_str = json.dumps(self.to_json(), default=str)
-        with open(str(Path(get_target_dir() / "job_results.json")), "a+") as log_file:
+        with open(
+            str((output_dir or Path(get_target_dir()) / "job_results.json")), "a+"
+        ) as log_file:
             log_file.write(json_str)
 
 

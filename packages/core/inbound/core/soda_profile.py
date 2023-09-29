@@ -60,7 +60,7 @@ def get_soda_profile(profile: Profile) -> str:
         if soda_spec.host is None and soda_spec.type == "snowflake":
             soda_spec.host = f"https://{soda_spec.account}.snowflakecomputing.com"
 
-        soda_profile = SodaProfile.parse_obj(
+        soda_profile = SodaProfile.model_validate(
             {f"data_source {profile.spec.database}": soda_spec}
         )
     except Exception as e:

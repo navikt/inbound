@@ -24,7 +24,7 @@ class Mode(Enum):
     PARALELL = 2
 
 
-def run_job(source: Union[str, dict], profiles_dir: Path = None) -> JobsResult:
+def run_job(source: Union[str, dict], output_dir: Path = None) -> JobsResult:
     jobs_spec = _get_json_config(source)
 
     # Replace 'env_var's in template
@@ -38,10 +38,10 @@ def run_job(source: Union[str, dict], profiles_dir: Path = None) -> JobsResult:
         LOGGER.info(f"Invalid jobs configuration: {str(e)}")
         return JobsResult()
 
-    return _run_jobs_in_list(jobs=jobs)
+    return _run_jobs_in_list(jobs=jobs, output_dir=output_dir)
 
 
-def run_jobs(path: str = "./jobs", profiles_dir: Path = None):
+def run_jobs(path: str = "./jobs", output_dir: Path = None):
     try:
         job_definition_files = [
             os.path.join(d, x)
@@ -55,7 +55,7 @@ def run_jobs(path: str = "./jobs", profiles_dir: Path = None):
 
     try:
         for job_definition_file in job_definition_files:
-            res = run_job(job_definition_file)
+            res = run_job(job_definition_file, output_dir)
             if res.result != "DONE":
                 LOGGER.info(
                     f"Error running job: {job_definition_file}. Result: {str(res)}"
@@ -98,7 +98,9 @@ def _get_json_config(source: Union[str, dict]):
         LOGGER.info(f"Error loading jobs configuration from {source}. {e}")
 
 
-def _run_jobs_in_list(jobs: List, mode: Mode = Mode.SEQUENTIAL) -> JobsResult:
+def _run_jobs_in_list(
+    jobs: List, mode: Mode = Mode.SEQUENTIAL, output_dir: Path = None
+) -> JobsResult:
     # Load plugins for source og target
     source_types = [job.source.type for job in jobs]
     sink_types = [job.target.type for job in jobs]
@@ -122,12 +124,12 @@ def _run_jobs_in_list(jobs: List, mode: Mode = Mode.SEQUENTIAL) -> JobsResult:
             jobs_result.memory = tracemalloc.get_traced_memory()
             jobs_result.append(res)
             jobs_result.result = "DONE"
-            jobs_result.log()
+            jobs_result.log(output_dir)
         except Exception as e:
             jobs_result.end_date_time = datetime.datetime.now()
             jobs_result.memory = tracemalloc.get_traced_memory()
             jobs_result.result = "FAILED"
-            jobs_result.log()
+            jobs_result.log(output_dir)
         finally:
             tracemalloc.stop()
             LOGGER.info(
