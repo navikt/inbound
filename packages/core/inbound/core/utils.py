@@ -1,7 +1,9 @@
+import errno
 import itertools
 import os
 import random
 import re
+import tempfile
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -48,12 +50,6 @@ def clean_column_names(s):
         res = "_" + res
 
     return res[0:300]
-
-
-def get_target_dir() -> Path:
-    target_dir = Path(Path.cwd() / "target")
-    target_dir.mkdir(parents=False, exist_ok=True)
-    return target_dir
 
 
 def generate_id() -> str:

@@ -7,7 +7,7 @@ from typing import ForwardRef, List, Optional, Tuple
 from pydantic import BaseModel, validator
 
 from inbound.core.logging import LOGGER
-from inbound.core.utils import generate_id, get_target_dir
+from inbound.core.utils import generate_id
 
 LOCAL_TIMEZONE = datetime.datetime.now().astimezone().tzinfo
 
@@ -95,14 +95,21 @@ class JobResult(BaseModel):
         res = f"""Job: {self.result}. {self.job_id}: {self.task_name}. Rows: {self.rows}. Chunk: {self.chunk_number}. Start: {self.start_date_time.strftime('%Y-%m-%d %H:%M:%S')}. Duration: {str(self.duration_rounded)}. Memory: {str(self.memory_size)}/{str(self.memory_peak)}"""
         return res
 
-    def log(self, out_dir: Path = None):
+    def log(self, output_dir: Path = None):
         LOGGER.info(str(self))
 
-        json_str = json.dumps(self.to_json(), default=str)
-        with open(
-            str(out_dir or Path(get_target_dir() / "job_result.json")), "a+"
-        ) as log_file:
-            log_file.write(json_str)
+        if output_dir is None:
+            LOGGER.info(
+                "No output dir provided. Please set env variable 'DBT_PROFILES_DIR' to enable logging of job result"
+            )
+        else:
+            try:
+                json_str = json.dumps(self.to_json(), default=str)
+
+                with open(str((output_dir / "job_results.json")), "a+") as log_file:
+                    log_file.write(json_str)
+            except Exception as e:
+                LOGGER.error(f"Error persisting job_result to {str(output_dir )}. {e}")
 
 
 JobResult.model_rebuild()
