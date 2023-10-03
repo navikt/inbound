@@ -7,6 +7,8 @@ import tempfile
 from contextlib import contextmanager
 from pathlib import Path
 
+from inbound.core.logging import LOGGER
+
 
 @contextmanager
 def use_dir(path):
@@ -19,6 +21,19 @@ def use_dir(path):
         yield
     finally:
         os.chdir(current_dir)
+
+
+def persist_to_target(data: str, target_dir: Path | str, out_file: str):
+    if not isinstance(target_dir, Path):
+        target_dir = Path(target_dir)
+
+    try:
+        with open(str(target_dir / out_file), "a+") as log_file:
+            log_file.write(data)
+    except Exception as e:
+        LOGGER.error(
+            f"Error persisting job_result to {str(target_dir)} / {out_file}. {e}"
+        )
 
 
 def clean_column_names(s):

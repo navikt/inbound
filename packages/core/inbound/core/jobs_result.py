@@ -8,7 +8,7 @@ from pydantic import BaseModel, validator
 
 from inbound.core.job_result import JobResult
 from inbound.core.logging import LOGGER
-from inbound.core.utils import generate_id
+from inbound.core.utils import generate_id, persist_to_target
 
 
 class JobsResult(BaseModel):
@@ -83,13 +83,8 @@ class JobsResult(BaseModel):
                 "No output dir provided. Please set env variable 'DBT_TARGET' to enable logging of job result"
             )
         else:
-            try:
-                json_str = json.dumps(self.to_json(), default=str)
-
-                with open(str((output_dir / "job_results.json")), "a+") as log_file:
-                    log_file.write(json_str)
-            except Exception as e:
-                LOGGER.error(f"Error persisting job_result to {str(output_dir )}. {e}")
+            data = json.dumps(self.to_json(), default=str)
+            persist_to_target(data, output_dir, "jobs_results.json")
 
 
 JobsResult.model_rebuild()
