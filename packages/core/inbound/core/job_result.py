@@ -7,7 +7,7 @@ from typing import ForwardRef, List, Optional, Tuple
 from pydantic import BaseModel, validator
 
 from inbound.core.logging import LOGGER
-from inbound.core.utils import generate_id
+from inbound.core.utils import generate_id, persist_to_target
 
 LOCAL_TIMEZONE = datetime.datetime.now().astimezone().tzinfo
 
@@ -100,16 +100,11 @@ class JobResult(BaseModel):
 
         if output_dir is None:
             LOGGER.info(
-                "No output dir provided. Please set env variable 'DBT_PROFILES_DIR' to enable logging of job result"
+                "No output dir provided. Please set env variable 'DBT_TARGET' to enable logging of job result"
             )
         else:
-            try:
-                json_str = json.dumps(self.to_json(), default=str)
-
-                with open(str((output_dir / "job_results.json")), "a+") as log_file:
-                    log_file.write(json_str)
-            except Exception as e:
-                LOGGER.error(f"Error persisting job_result to {str(output_dir )}. {e}")
+            data = json.dumps(self.to_json(), default=str)
+            persist_to_target(data, output_dir, "job_results.json")
 
 
 JobResult.model_rebuild()

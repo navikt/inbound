@@ -80,7 +80,7 @@ class JobsResult(BaseModel):
 
         if output_dir is None:
             LOGGER.info(
-                "No output dir provided. Please set env variable 'DBT_PROFILES_DIR' to enable logging of job result"
+                "No output dir provided. Please set env variable 'DBT_TARGET' to enable logging of job result"
             )
         else:
             try:
