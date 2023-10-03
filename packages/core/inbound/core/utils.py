@@ -23,7 +23,10 @@ def use_dir(path):
         os.chdir(current_dir)
 
 
-def persist_to_target(data: str, target_dir: Path | str, out_file: str):
+def persist_to_target(data: str, target_dir: Path | str, out_file: str) -> Path:
+    if target_dir is None:
+        target_dir = tempfile.mkdtemp()
+
     if not isinstance(target_dir, Path):
         target_dir = Path(target_dir)
 
@@ -34,6 +37,8 @@ def persist_to_target(data: str, target_dir: Path | str, out_file: str):
         LOGGER.error(
             f"Error persisting job_result to {str(target_dir)} / {out_file}. {e}"
         )
+
+    return target_dir
 
 
 def clean_column_names(s):

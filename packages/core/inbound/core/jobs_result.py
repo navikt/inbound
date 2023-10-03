@@ -78,13 +78,8 @@ class JobsResult(BaseModel):
     def log(self, output_dir: Path = None):
         LOGGER.info(str(self))
 
-        if output_dir is None:
-            LOGGER.info(
-                "No output dir provided. Please set env variable 'DBT_TARGET' to enable logging of job result"
-            )
-        else:
-            data = json.dumps(self.to_json(), default=str)
-            persist_to_target(data, output_dir, "jobs_results.json")
+        data = json.dumps(self.to_json(), default=str)
+        persist_to_target(data, output_dir, "jobs_results.json")
 
 
 JobsResult.model_rebuild()

@@ -206,9 +206,9 @@ class JobRunner:
             time_start = datetime.now(timezone.utc)
             # run all jobs i directory
             if self.job_file_name is None:
-                result = jobs.run_jobs(self.JOBS_DIR, self.DBT_TARGET)
+                result = jobs.run_jobs(self.JOBS_DIR, self.TEMP_DIR)
             else:  # run jobs in one file
-                result = jobs.run_job(self.job_file_name, self.DBT_TARGET)
+                result = jobs.run_job(self.job_file_name, self.TEMP_DIR)
             time_end = datetime.now(timezone.utc)
 
             # persist jobs metadata
