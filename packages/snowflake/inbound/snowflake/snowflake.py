@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Tuple
 
 import pandas
-from snowflake.connector.pandas_tools import pd_writer
+from snowflake.connector.pandas_tools import pd_writer, write_pandas
 from snowflake.sqlalchemy import URL
 
 from inbound.core import JobResult, Profile, connection_factory, logging
@@ -112,15 +112,27 @@ class SnowflakeConnection(SQLAlchemyConnection):
     ) -> None:
         LOGGER.info("Snowflake: Writing dataframe to table {table}")
         try:
-            df.to_sql(
+            write_pandas(
+                con=self.connection,
+                df=df,
+                table_name=table,
+                database=self.profile.spec.database,
+                schema=self.profile.spec.database_schema,
+                compression="snappy",
+                # parallel=99
+                quote_identifiers=True,
+            )
+
+            """df.to_sql(
                 table,
                 con=self.connection,
                 index=False,
                 if_exists="append",
                 # method="multi",
                 method=pd_writer,
-            )
-            self.connection.execute("COMMIT")
+            ) """
+
+            # self.connection.execute("COMMIT")
         except Exception as e:
             LOGGER.info(f"Snowflake: Error writing dataframe to table {table}. {e}")
 

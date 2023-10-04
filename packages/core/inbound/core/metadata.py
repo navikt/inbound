@@ -79,7 +79,7 @@ def enriched_with_metadata(
 
             job_res.task_name = "Create metadata dataframe"
             job_res.rows = df_out.size
-            job_res.chunk = 1
+            job_res.chunk_number = 1
             job_res.end_date_time = datetime.datetime.now()
             job_res.memory = tracemalloc.get_traced_memory()
             job_res.result = "DONE"
