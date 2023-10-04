@@ -98,7 +98,6 @@ class SQLAlchemyConnection(BaseConnection):
                     job_res.rows = len(df)
                     chunk_number += 1
                     chunk_start_date_time = datetime.datetime.now()
-                    chunk_number += 1
                     total_rows += length
                     yield df, job_res
                 except StopIteration:
