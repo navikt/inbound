@@ -38,7 +38,10 @@ class Job:
                     iterator = source.to_pandas(job_id)
                     for index, (df, read_res) in enumerate(iterator):
                         # log result of data loading
-                        read_res.log()
+                        LOGGER.info(
+                            f"Logging loading job result for chunk: {index} to {self.output_dir}"
+                        )
+                        read_res.log(self.output_dir)
 
                         # transform dataframe if specified
                         if source.profile.spec.transformer is not None:
@@ -82,7 +85,7 @@ class Job:
             job_result.end_date_time = datetime.datetime.now()
             job_result.memory = tracemalloc.get_traced_memory()
             tracemalloc.stop()
-            job_result.log()
+            job_result.log(self.output_dir)
             return job_result
 
 
