@@ -52,7 +52,7 @@ class SQLAlchemyConnection(BaseConnection):
             conn = self.engine.connect()
             return conn
         except Exception as e:
-            LOGGER.error(f"Error in trying to connect to db")
+            LOGGER.error(f"SQLAlchemy: Error in trying to connect to db")
             raise
 
     def to_pandas(
@@ -65,14 +65,14 @@ class SQLAlchemyConnection(BaseConnection):
             raise ValueError("Please provide an SQL query string or table name.")
 
         LOGGER.info(
-            f"Excuting query {query} in database {self.type}:{self.name} with chunksize: {chunk_size}"
+            f"SQLAlchemy excuting query {query} in database {self.type}:{self.name} with chunksize: {chunk_size}"
         )
 
         job_res = JobResult(
             result="NO RUN",
             job_id=job_id,
             start_date_time=datetime.datetime.now(),
-            task_name=f"chunk to pandas",
+            task_name=f"SQLAlchemy: chunk to pandas",
         )
 
         chunk_number = 0
@@ -87,7 +87,7 @@ class SQLAlchemyConnection(BaseConnection):
                 try:
                     df = next(iterator)
                     LOGGER.info(
-                        f"Returning batch number {chunk_number} of length {len(df)}"
+                        f"SQLAlchemy returning batch number {chunk_number} of length {len(df)}"
                     )
                     job_res.result = "DONE"
                     job_res.start_date_time = chunk_start_date_time
@@ -140,7 +140,7 @@ class SQLAlchemyConnection(BaseConnection):
         job_res = JobResult(
             result="NO RUN",
             job_id=job_id,
-            task_name=f"from pandas",
+            task_name="SQLAlchemy: chunk to pandas",
             start_date_time=datetime.datetime.now(),
             chunk_number=chunk_number,
             size=df.memory_usage(deep=True).sum(),
@@ -154,6 +154,9 @@ class SQLAlchemyConnection(BaseConnection):
                 job_res = self.drop(table, job_res)
                 job_res.log()
 
+            LOGGER.info(
+                f"SQLAlchemy persisting dataframe chunk {chunk_number} to {table} in {self.name}"
+            )
             self.to_sql(df, table)
 
             job_res.memory = tracemalloc.get_traced_memory()
@@ -162,6 +165,9 @@ class SQLAlchemyConnection(BaseConnection):
             return None, job_res
 
         except Exception as e:
+            LOGGER.info(
+                f"SQLAlchemy error writing chunk {chunk_number} to {table} in {self.name}. {e}"
+            )
             job_res.memory = tracemalloc.get_traced_memory()
             job_res.end_date_time = datetime.datetime.now()
             job_res.result = "FAILED"
@@ -171,11 +177,12 @@ class SQLAlchemyConnection(BaseConnection):
         return self.engine.execute(sql)
 
     def drop(self, table_name: str, job_res: JobResult = None) -> JobResult():
+        LOGGER.info(f"Dropping table {table_name} in SQL database {self.name}")
         if job_res is None:
             job_res = JobResult()
 
         job_res.start_date_time = datetime.datetime.now()
-        job_res.task_name = f"drop table {table_name}"
+        job_res.task_name = f"SQLAlchemy: drop table {table_name}"
         try:
             metadata = sqlalchemy.MetaData()
             table = sqlalchemy.Table(table_name, metadata)

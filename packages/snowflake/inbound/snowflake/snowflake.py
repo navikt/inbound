@@ -110,15 +110,19 @@ class SnowflakeConnection(SQLAlchemyConnection):
         df: pandas.DataFrame,
         table: str,
     ) -> None:
-        df.to_sql(
-            table,
-            con=self.connection,
-            index=False,
-            if_exists="append",
-            # method="multi",
-            method=pd_writer,
-        )
-        self.connection.execute("COMMIT")
+        LOGGER.info("Snowflake: Writing dataframe to table {table}")
+        try:
+            df.to_sql(
+                table,
+                con=self.connection,
+                index=False,
+                if_exists="append",
+                # method="multi",
+                method=pd_writer,
+            )
+            self.connection.execute("COMMIT")
+        except Exception as e:
+            LOGGER.info(f"Snowflake: Error writing dataframe to table {table}. {e}")
 
         # TODO: Dette ser ikke bra ut, burde finnet ut hvorfor vi tryner her
 

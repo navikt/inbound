@@ -76,7 +76,7 @@ class JobsResult(BaseModel):
         return res
 
     def log(self, output_dir: Path = None):
-        LOGGER.info(str(self))
+        LOGGER.info(f"Log jobs: {str(self)}")
 
         data = json.dumps(self.to_json(), default=str)
         persist_to_target(data, output_dir, "jobs_results.json")

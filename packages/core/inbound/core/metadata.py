@@ -77,7 +77,9 @@ def enriched_with_metadata(
                 hashlib.md5(data.encode("utf-8")).hexdigest() for data in df_out["RAW"]
             ]
 
-            job_res.task_name = "Process: log"
+            job_res.task_name = "Create metadata dataframe"
+            job_res.rows = df_out.size
+            job_res.chunk = 1
             job_res.end_date_time = datetime.datetime.now()
             job_res.memory = tracemalloc.get_traced_memory()
             job_res.result = "DONE"

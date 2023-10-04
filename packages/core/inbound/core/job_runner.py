@@ -160,7 +160,7 @@ def write_job_run_result_to_db(
                 """
             )
     except Exception as e:
-        LOGGER.error(f"Error persisting job result. {e}")
+        LOGGER.error(f"Error persisting job result to db. {e}")
 
 
 class JobRunner:
@@ -385,6 +385,7 @@ class JobRunner:
         # persist job results
         time_end = datetime.now(timezone.utc)
 
+        LOGGER.info(f"Writing metadata to db for job {self.job_id}")
         write_job_run_result_to_db(
             self.profile,
             self.job_id,

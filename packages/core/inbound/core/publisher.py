@@ -13,12 +13,11 @@ from inbound.core.settings import Settings
 def publish_metadata(id: str, paths: List[str], bucket: str, run_id: str = None) -> str:
     for path in paths:
         upload_metadata_to_gcs(id, path, bucket, run_id)
-
     return "DONE"
 
 
 def upload_metadata_to_gcs(id: str, path: str, run_id: str = None) -> str:
-    """uploads a file to a bucket"""
+    LOGGER.info(f"Upload metadata {path} uploading to {name}.")
 
     settings = Settings()
 
@@ -32,6 +31,7 @@ def upload_metadata_to_gcs(id: str, path: str, run_id: str = None) -> str:
         name = f'{id.replace(".","_")}/{run_id}/{path.lower()}'
 
     if Path(full_path).is_file():
+        LOGGER.info(f"Metadata file {full_path} uploading to {name}.")
         try:
             # using GOOGLE_APPLICATION_CREDENTIALS
             storage_client = storage.Client()
@@ -40,7 +40,6 @@ def upload_metadata_to_gcs(id: str, path: str, run_id: str = None) -> str:
             # upload current run
             blob = bucket.blob(name)
             blob.upload_from_filename(full_path)
-            LOGGER.info(f"Metadata file {full_path} uploaded to {name}.")
             res = "DONE"
         except Exception as e:
             LOGGER.debug(f"Error uploading metadata file {full_path} to {name}. {e}")
