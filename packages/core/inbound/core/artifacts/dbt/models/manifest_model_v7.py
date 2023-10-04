@@ -8,7 +8,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import StringConstraints, ConfigDict, BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from typing_extensions import Annotated
 
 
@@ -27,9 +27,12 @@ class ManifestMetadata(BaseModel):
     )
     user_id: Optional[
         Optional[
-            Annotated[str, StringConstraints(
-                pattern=r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
-            )]
+            Annotated[
+                str,
+                StringConstraints(
+                    pattern=r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                ),
+            ]
         ]
     ] = Field(None, description="A unique identifier for the user")
     send_anonymous_usage_stats: Optional[Optional[bool]] = Field(
@@ -106,7 +109,9 @@ class TestConfig(BaseModel):
     meta: Optional[Dict[str, Any]] = {}
     materialized: Optional[str] = "test"
     severity: Optional[
-        Annotated[str, StringConstraints(pattern=r"^([Ww][Aa][Rr][Nn]|[Ee][Rr][Rr][Oo][Rr])$")]
+        Annotated[
+            str, StringConstraints(pattern=r"^([Ww][Aa][Rr][Nn]|[Ee][Rr][Rr][Oo][Rr])$")
+        ]
     ] = "ERROR"
     store_failures: Optional[Optional[bool]] = None
     where: Optional[Optional[str]] = None

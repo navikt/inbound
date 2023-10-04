@@ -110,10 +110,10 @@ class SnowflakeConnection(SQLAlchemyConnection):
         df: pandas.DataFrame,
         table: str,
     ) -> None:
-        LOGGER.info("Snowflake: Writing dataframe to table {table}")
+        LOGGER.info(f"Snowflake: Writing dataframe to table {table}")
         try:
             write_pandas(
-                con=self.connection,
+                conn=self.connection,
                 df=df,
                 table_name=table,
                 database=self.profile.spec.database,

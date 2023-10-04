@@ -25,6 +25,7 @@ class Mode(Enum):
 
 
 def run_job(source: Union[str, dict], output_dir: Path = None) -> JobsResult:
+    LOGGER.info(f"Running job {str(source)}")
     jobs_spec = _get_json_config(source)
 
     # Replace 'env_var's in template
@@ -55,6 +56,7 @@ def run_jobs(path: str = "./jobs", output_dir: Path = None):
 
     try:
         for job_definition_file in job_definition_files:
+            LOGGER.info(f"Running jobs in {job_definition_file}")
             res = run_job(job_definition_file, output_dir)
             if res.result != "DONE":
                 LOGGER.info(
@@ -62,6 +64,7 @@ def run_jobs(path: str = "./jobs", output_dir: Path = None):
                 )
         return JobsResult(result="DONE")
     except:
+        LOGGER.error(f"Error running jobs in {job_definition_file}")
         return JobsResult()
 
 
@@ -126,6 +129,9 @@ def _run_jobs_in_list(
             jobs_result.result = "DONE"
             jobs_result.log(output_dir)
         except Exception as e:
+            LOGGER.error(
+                f"Error running job: {job.name} ({job.job_id}). Source: {job.source.name or job.source.type}. Target: {job.target.name or job.target.type}. {e}"
+            )
             jobs_result.end_date_time = datetime.datetime.now()
             jobs_result.memory = tracemalloc.get_traced_memory()
             jobs_result.result = "FAILED"

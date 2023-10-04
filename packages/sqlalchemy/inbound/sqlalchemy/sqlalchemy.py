@@ -65,7 +65,7 @@ class SQLAlchemyConnection(BaseConnection):
             raise ValueError("Please provide an SQL query string or table name.")
 
         LOGGER.info(
-            f"SQLAlchemy excuting query {query} in database {self.type}:{self.name} with chunksize: {chunk_size}"
+            f"SQLAlchemy excuting query {query} in database {self.profile.spec.database} table {self.profile.spec.table} with chunksize: {chunk_size}"
         )
 
         job_res = JobResult(
@@ -87,7 +87,7 @@ class SQLAlchemyConnection(BaseConnection):
                 try:
                     df = next(iterator)
                     LOGGER.info(
-                        f"SQLAlchemy returning batch number {chunk_number} of length {len(df)}"
+                        f"SQLAlchemy returning batch number {chunk_number} of length {len(df)}. Total rows {total_rows}"
                     )
                     job_res.result = "DONE"
                     job_res.start_date_time = chunk_start_date_time
@@ -155,7 +155,7 @@ class SQLAlchemyConnection(BaseConnection):
                 job_res.log()
 
             LOGGER.info(
-                f"SQLAlchemy persisting dataframe chunk {chunk_number} to {table} in {self.name}"
+                f"SQLAlchemy persisting dataframe chunk {chunk_number} to {table} in {self.profile.spec.database}"
             )
             self.to_sql(df, table)
 
@@ -166,7 +166,7 @@ class SQLAlchemyConnection(BaseConnection):
 
         except Exception as e:
             LOGGER.info(
-                f"SQLAlchemy error writing chunk {chunk_number} to {table} in {self.name}. {e}"
+                f"SQLAlchemy error writing chunk {chunk_number} to {table} in {self.profile.spec.database}. {e}"
             )
             job_res.memory = tracemalloc.get_traced_memory()
             job_res.end_date_time = datetime.datetime.now()
@@ -177,7 +177,7 @@ class SQLAlchemyConnection(BaseConnection):
         return self.engine.execute(sql)
 
     def drop(self, table_name: str, job_res: JobResult = None) -> JobResult():
-        LOGGER.info(f"Dropping table {table_name} in SQL database {self.name}")
+        LOGGER.info(f"Dropping table {table_name} in SQL database")
         if job_res is None:
             job_res = JobResult()
 
@@ -196,7 +196,7 @@ class SQLAlchemyConnection(BaseConnection):
             return job_res
         except Exception as e:
             LOGGER.info(
-                f"Database error: Could not drop table {table_name} in SQL database {self.name}. {str(e)}"
+                f"Database error: Could not drop table {table_name} in SQL database. {str(e)}"
             )
             job_res.result = "FAILED"
             return job_res
