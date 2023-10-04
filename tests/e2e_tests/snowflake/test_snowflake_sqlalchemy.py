@@ -9,18 +9,20 @@ from tests.utils.dataframes import df
 user = os.getenv("SNOWFLAKE_TEST_USER")
 pwd = os.getenv("SNOWFLAKE_TEST_PASSWORD")
 account = os.getenv("SNOWFLAKE_TEST_ACCOUNT")
+database = os.getenv("SNOWFLAKE_TEST_DATABASE")
+schema = os.getenv("SNOWFLAKE_TEST_SCHEMA")
+warehouse = os.getenv("SNOWFLAKE_TEST_WAREHOUSE")
+role = os.getenv("SNOWFLAKE_TEST_ROLE")
+table = "test"
 
-spec = Spec(
-    database=os.getenv("SNOWFLAKE_TEST_DATABASE"),
-    database_schema=os.getenv("SNOWFLAKE_TEST_SCHEMA"),
-    warehouse=os.getenv("SNOWFLAKE_TEST_WAREHOUSE"),
-    role=os.getenv("SNOWFLAKE_TEST_ROLE"),
+
+spec_sqlalchemy = Spec(
     name=f"snowflake {account}",
-    connection_string=f"snowflake://{user}:{pwd}@{account}",
-    table="test",
+    table=table,
+    connection_string=f"snowflake://{user}:{pwd}@{account}/{database}/{schema}?warehouse={warehouse}&role={role}",
 )
 
-profile = Profile(type="snowflake", name=f"snowflake {account}", spec=spec)
+profile = Profile(type="snowflake", name=f"snowflake {account}", spec=spec_sqlalchemy)
 
 
 def test_write_pandas_append():

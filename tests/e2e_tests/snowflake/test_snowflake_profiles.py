@@ -40,7 +40,7 @@ detailed_profile = Profile(type="snowflake", name=name, spec=detailed_spec)
 sa_spec = Spec(
     role=role,
     name=name,
-    connection_string=f"snowflake://{user}:{pwd}@{account}/{database}/{schema}?warehouse={warehouse}",
+    connection_string=f"snowflake://{user}:{pwd}@{account}/{database}/{schema}?warehouse={warehouse}&role={role}",
     table=table,
     query=query,
 )
@@ -48,9 +48,9 @@ sa_profile = Profile(type="snowflake", name=name, spec=sa_spec)
 
 dbt_spec = Spec(
     name=name,
-    profile="test-snowflake-db",
-    target="dev",
-    profiles_dir=str(Path(__file__).parent),
+    profile="snowflake_test",
+    target="loader",
+    profiles_dir=str(Path(__file__).parent.parent.parent / "dbt"),
     table=table,
     query=query,
 )
@@ -58,19 +58,26 @@ dbt_profile = Profile(type="snowflake", name=name, spec=dbt_spec)
 
 
 def test_dbt_profile():
+    dbt_dir = os.getenv("DBT_PROFILES_DIR")
+
+    if dbt_dir is None:
+        os.environ["DBT_PROFILES_DIR"] = str(
+            Path(__file__).parent.parent.parent / "dbt"
+        )
+
     roundtrip(dbt_profile)
+    if dbt_dir is not None:
+        os.environ["DBT_PROFILES_DIR"] = dbt_dir
 
 
 def test_sa_profile():
     with SnowflakeConnection(profile=sa_profile) as db:
         current_role = db.execute("select current_role()").fetchone()
-        assert current_role[0] == "PUBLIC"
+        assert current_role[0].casefold() == role.casefold()
 
-    with SnowflakeConnection(profile=sa_profile) as db:
         current_database = db.execute("select current_database()").fetchone()
-        assert current_database[0] == None
+        assert current_database[0].casefold() == database.casefold()
 
-    with SnowflakeConnection(profile=sa_profile) as db:
         current_schema = db.execute("select current_schema()").fetchone()
         assert current_schema[0].casefold() == schema.casefold()
 
@@ -82,11 +89,9 @@ def test_detailed_profile():
         current_role = db.execute("select current_role()").fetchone()
         assert current_role[0].casefold() == role.casefold()
 
-    with SnowflakeConnection(profile=detailed_profile) as db:
         current_database = db.execute("select current_database()").fetchone()
         assert current_database[0].casefold() == database.casefold()
 
-    with SnowflakeConnection(profile=detailed_profile) as db:
         current_schema = db.execute("select current_schema()").fetchone()
         assert current_schema[0].casefold() == schema.casefold()
 
@@ -144,5 +149,6 @@ def drop_table(db):
     )
 
 
+test_dbt_profile()
 test_detailed_profile()
 test_sa_profile()

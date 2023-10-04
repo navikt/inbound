@@ -7,7 +7,7 @@ jaffle_shop:
   outputs:
     dev:
       type: duckdb
-      path: '../.data/jaffle_shop.duckdb'
+      path: '../data/jaffle_shop.duckdb'
       threads: 24
 
 snowflake_test:
@@ -15,13 +15,13 @@ snowflake_test:
   outputs:
     loader:
       type: "snowflake"
-      account: "{{env_var('SNOWFLAKE_DATAPRODUCT_ACCOUNT')}}.{{env_var('SNOWFLAKE_DATAPRODUCT_REGION')}}"
-      user: "{{env_var('SNOWFLAKE_DATAPRODUCT_USER')}}" 
-      password: "{{env_var('SNOWFLAKE_DATAPRODUCT_PASSWORD')}}"
-      role: "test_loader"
-      database: "test"
-      warehouse: "test"
-      schema:  "test"
+      account: "{{env_var('SNOWFLAKE_TEST_ACCOUNT')}}"
+      user: "{{env_var('SNOWFLAKE_TEST_USER')}}" 
+      password: "{{env_var('SNOWFLAKE_TEST_PASSWORD')}}"
+      role: "test_role"
+      database: "test_database"
+      warehouse: "test_warehouse"
+      schema:  "test_schema"
       threads: 1
       client_session_keep_alive: False
       query_tag: "eyeshare"

@@ -76,7 +76,6 @@ class SQLAlchemyConnection(BaseConnection):
         )
 
         chunk_number = 0
-        length = 1
         total_rows = 1
         chunk_start_date_time = datetime.datetime.now()
         df = pandas.DataFrame()
@@ -96,9 +95,9 @@ class SQLAlchemyConnection(BaseConnection):
                     job_res.chunk_number = chunk_number
                     job_res.size = df.memory_usage(deep=True).sum()
                     job_res.rows = len(df)
-                    chunk_number += 1
                     chunk_start_date_time = datetime.datetime.now()
-                    total_rows += length
+                    chunk_number += 1
+                    total_rows += job_res.rows
                     yield df, job_res
                 except StopIteration:
                     LOGGER.info("Last chunk read")
@@ -154,7 +153,7 @@ class SQLAlchemyConnection(BaseConnection):
                 job_res.log()
 
             LOGGER.info(
-                f"SQLAlchemy persisting dataframe chunk {chunk_number} to {table} in {self.profile.spec.database}"
+                f"SQLAlchemy persisting dataframe chunk {chunk_number} to {table}"
             )
             self.to_sql(df, table)
 
@@ -165,7 +164,7 @@ class SQLAlchemyConnection(BaseConnection):
 
         except Exception as e:
             LOGGER.info(
-                f"SQLAlchemy error writing chunk {chunk_number} to {table} in {self.profile.spec.database}. {e}"
+                f"SQLAlchemy error writing chunk {chunk_number} to {table}. {e}"
             )
             job_res.memory = tracemalloc.get_traced_memory()
             job_res.end_date_time = datetime.datetime.now()
@@ -173,7 +172,7 @@ class SQLAlchemyConnection(BaseConnection):
             return None, job_res
 
     def execute(self, sql):
-        return self.engine.execute(sql)
+        return self.connection.execute(sql)
 
     def drop(self, table_name: str, job_res: JobResult = None) -> JobResult():
         LOGGER.info(f"Dropping table {table_name} in SQL database")

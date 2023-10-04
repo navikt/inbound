@@ -1,3 +1,4 @@
+import functools
 import os
 import shutil
 from pathlib import Path
@@ -6,6 +7,7 @@ from typing import Any, Tuple
 import pandas
 from snowflake.connector.pandas_tools import pd_writer, write_pandas
 from snowflake.sqlalchemy import URL
+from sqlalchemy import create_engine
 
 from inbound.core import JobResult, Profile, connection_factory, logging
 from inbound.core.dbt_profile import dbt_connection_params
@@ -57,7 +59,7 @@ class SnowflakeConnection(SQLAlchemyConnection):
 
         # fallback to use parameters provided in spec
         params = dict()
-        spec_dict = profile.spec.dict(by_alias=True)
+        spec_dict = profile.spec.model_dump(by_alias=True)
         for param in sf_conn_params:
             if param in spec_dict.keys():
                 params[param] = spec_dict.get(param)
@@ -112,31 +114,32 @@ class SnowflakeConnection(SQLAlchemyConnection):
     ) -> None:
         LOGGER.info(f"Snowflake: Writing dataframe to table {table}")
         try:
+            """with self.connection.engine.raw_connection() as con:
             write_pandas(
-                conn=self.connection,
+                conn=con,
                 df=df,
                 table_name=table,
-                database=self.profile.spec.database,
-                schema=self.profile.spec.database_schema,
+                database=con.connection.database,
+                schema=con.connection.schema,
                 compression="snappy",
+                auto_create_table=True,
                 # parallel=99
-                quote_identifiers=True,
-            )
+                quote_identifiers=False,
+            )"""
 
-            """df.to_sql(
+            df.to_sql(
                 table,
                 con=self.connection,
                 index=False,
                 if_exists="append",
                 # method="multi",
-                method=pd_writer,
-            ) """
-
-            # self.connection.execute("COMMIT")
+                method=functools.partial(
+                    pd_writer, quote_identifiers=False, auto_create_table=True
+                ),
+            )
+            self.connection.execute("COMMIT")
         except Exception as e:
             LOGGER.info(f"Snowflake: Error writing dataframe to table {table}. {e}")
-
-        # TODO: Dette ser ikke bra ut, burde finnet ut hvorfor vi tryner her
 
 
 def register() -> None:
