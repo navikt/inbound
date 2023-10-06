@@ -25,4 +25,4 @@ def create(profile: Profile) -> Connection:
         creator_func = connection_creation_funcs[connection_type]
     except KeyError:
         raise ValueError(f"unknown connection type {str(connection_type)}") from None
-    return creator_func(profile.copy())
+    return creator_func(profile.model_copy())

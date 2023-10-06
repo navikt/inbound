@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import List, Protocol
 
-from inbound.core import dbt_profile, jobs
+from inbound.core import connection_factory, connection_loader, dbt_profile, jobs
 from inbound.core.connection import Connection
 from inbound.core.job_result import JobResult
 from inbound.core.logging import LOGGER
@@ -16,7 +16,6 @@ from inbound.core.models import Profile, Spec
 from inbound.core.soda_profile import get_soda_profile
 from inbound.core.utils import generate_id
 from inbound.gcs import GCSConnection
-from inbound.snowflake import SnowflakeConnection
 
 
 class Request(Protocol):
@@ -50,6 +49,12 @@ def use_dir(path):
         os.chdir(current_working_dir)
 
 
+def get_metadata_table_name(profile: Profile, table: str) -> str:
+    if profile.type == "duckdb":
+        return table.rsplit(".", 1)[1]
+    return table
+
+
 def write_pydantic_to_db(
     profile: Profile,
     table: str,
@@ -60,18 +65,37 @@ def write_pydantic_to_db(
     connection: Connection,
 ):
     time_end = datetime.now(timezone.utc)
-    result = []
-    with connection(profile=profile) as db:
-        db.execute(
-            f"""
-            create table if not exists 
-            {table}(job_id string, time_start timestamp_ltz default current_timestamp, time_end timestamp_ltz default current_timestamp, raw variant)
-            """
-        )
-        db.execute(
-            f"""insert into {table}(job_id, time_start, time_end, raw)
-                select '{job_id}', '{time_start}', '{time_end}', parse_json($${blob.json()}$$);
-            """
+    metadata_table = get_metadata_table_name(profile, table)
+    try:
+        LOGGER.info(f"Persisting job metadata to table {metadata_table}")
+        with connection as db:
+            if profile.type == "snowflake":
+                db.execute(
+                    f"""
+                    create table if not exists 
+                    {metadata_table}(job_id string, time_start timestamp_ltz, time_end timestamp_ltz, raw variant)
+                    """
+                )
+                db.execute(
+                    f"""insert into {metadata_table}(job_id, time_start, time_end, raw)
+                        select '{job_id}', '{time_start}', '{time_end}', parse_json($${blob.json()}$$);
+                    """
+                )
+            else:
+                db.execute(
+                    f"""
+                    create table if not exists 
+                    {metadata_table}(job_id string, time_start timestamp_ltz, time_end timestamp_ltz, raw JSON)
+                    """
+                )
+                db.execute(
+                    f"""insert into {metadata_table}(job_id, time_start, time_end, raw)
+                        values ('{job_id}', '{time_start}', '{time_end}', '{blob.json()}');
+                    """
+                )
+    except Exception as e:
+        LOGGER.error(
+            f"Error persisting job metadata to table {metadata_table} with profile {profile.type}.{e}"
         )
 
 
@@ -89,22 +113,38 @@ def write_metadata_json_to_db(
         return
 
     time_end = datetime.now(timezone.utc)
-    result = []
+    metadata_table = get_metadata_table_name(profile, table)
     try:
-        with connection(profile=profile) as db:
-            db.execute(
-                f"""
-                create table if not exists 
-                {table}(job_id string, time_start timestamp_ltz default current_timestamp, time_end timestamp_ltz default current_timestamp, raw variant)
-                """
-            )
-            db.execute(
-                f"""insert into {table}(job_id, time_start, time_end, raw)
-                    select '{job_id}', '{time_start}', '{time_end}', parse_json($${blob}$$);
-                """
-            )
+        LOGGER.info(f"Persisting metadata json to table {metadata_table}")
+        with connection as db:
+            if profile.type == "snowflake":
+                db.execute(
+                    f"""
+                    create table if not exists 
+                    {metadata_table}(job_id string, time_start timestamp_ltz default current_timestamp, time_end timestamp_ltz default current_timestamp, raw variant)
+                    """
+                )
+                db.execute(
+                    f"""insert into {metadata_table}(job_id, time_start, time_end, raw)
+                        select '{job_id}', '{time_start}', '{time_end}', parse_json($${blob}$$);
+                    """
+                )
+            else:
+                db.execute(
+                    f"""
+                    create table if not exists 
+                    {metadata_table}(job_id string, time_start timestamptz, time_end timestamptz, raw JSON)
+                    """
+                )
+                db.execute(
+                    f"""insert into {metadata_table}(job_id, time_start, time_end, raw)
+                        values ('{job_id}', '{time_start}', '{time_end}', '{blob.model_dump_json()}');
+                    """
+                )
     except Exception as e:
-        LOGGER.info()
+        LOGGER.error(
+            f"Error persisting metadata json to table {metadata_table} with profile {profile.type}.{e}"
+        )
 
 
 def write_metadata_text_to_db(
@@ -117,22 +157,25 @@ def write_metadata_text_to_db(
     connection: Connection,
 ):
     time_end = datetime.now(timezone.utc)
-    result = []
+    metadata_table = get_metadata_table_name(profile, table)
     try:
-        with connection(profile=profile) as db:
+        LOGGER.info(f"Persisting metadata text to table {metadata_table}")
+        with connection as db:
             db.execute(
                 f"""
                 create table if not exists 
-                {table}(job_id string, time_start timestamp_ltz default current_timestamp,time_end timestamp_ltz default current_timestamp, raw text)
+                {metadata_table}(job_id string, time_start timestamp_ltz default current_timestamp,time_end timestamp_ltz default current_timestamp, raw text)
                 """
             )
             db.execute(
-                f"""insert into {table}(job_id, time_start, time_end, raw)
-                    select '{job_id}', '{time_start}', '{time_end}', '{text}';
+                f"""insert into {metadata_table}(job_id, time_start, time_end, raw)
+                    values ('{job_id}', '{time_start}', '{time_end}', '{text}');
                 """
             )
     except Exception as e:
-        print(e)
+        LOGGER.error(
+            f"Error persisting metadata text to table {metadata_table} with profile {profile.type}.{e}"
+        )
 
 
 def write_job_run_result_to_db(
@@ -143,42 +186,42 @@ def write_job_run_result_to_db(
     actions: str,
     success: str,
     message: str,
-    connection: Connection = SnowflakeConnection,
+    connection: Connection,
 ):
     time_end = datetime.now(timezone.utc)
+    metadata_table = get_metadata_table_name(profile, "meta.job_run")
     try:
-        with connection(profile=profile) as db:
+        LOGGER.info(
+            f"Persisting job result to db. Profile: {profile.type}. Table: {metadata_table}"
+        )
+        with connection as db:
             db.execute(
                 f"""
                 create table if not exists 
-                meta.job_run(job_id string, time_start timestamp_ltz default current_timestamp,time_end timestamp_ltz default current_timestamp, actions text, success text, message text)
+                {metadata_table}(job_id string, time_start timestamp_ltz default current_timestamp,time_end timestamp_ltz default current_timestamp, actions text, success text, message text)
                 """
             )
             db.execute(
-                f"""insert into meta.job_run(job_id, time_start, time_end, actions, success, message)
+                f"""insert into {metadata_table}(job_id, time_start, time_end, actions, success, message)
                     select '{job_id}', '{time_start}', '{time_end}', '{actions}', '{success}', '{message}';
                 """
             )
     except Exception as e:
-        LOGGER.error(f"Error persisting job result to db. {e}")
+        LOGGER.info(
+            f"Error persisting job result to db. Profile: {profile.type}. Table: {metadata_table}. {e}"
+        )
 
 
 class JobRunner:
     def __init__(
         self,
-        db: str,
         profile: str,
-        target: str = os.getenv("DBT_TARGET", "transformer"),
-        metadata_schema: str = "META",
+        target: str = os.getenv("DBT_TARGET", "loader"),
         job_file_name: str | None = None,
-        connection: Connection | None = None,
         actions: List[Actions] = [Actions.INGEST, Actions.TRANSFORM, Actions.METADATA],
         soda: callable = None,
     ):
-        self.db = db
-        self.metadata_schema = metadata_schema
         self.job_file_name = job_file_name
-        self.connection = connection
         self.actions = actions
         self.soda = soda
         self.JOBS_DIR = os.getenv("INBOUND_JOBS_DIR", "./inbound/jobs")
@@ -195,9 +238,17 @@ class JobRunner:
         self.conn_params = dbt_profile.dbt_connection_params(
             self.DBT_PROFILE, self.DBT_TARGET, self.DBT_DIR
         )
-        self.profile = Profile(
-            type="snowflake", name="snowflake", spec=Spec(**self.conn_params)
+        self.metadata_profile = Profile(
+            type=self.conn_params.get("type") or "snowflake",
+            name="jobrunner",
+            spec=Spec(**self.conn_params),
         )
+
+        self.metadata_db = self.conn_params.get("database") or "meta"
+        self.metadata_schema = self.conn_params.get("schema") or "job_runner"
+
+        connection_loader.load_plugins([self.conn_params["type"]])
+        self.connection = connection_factory.create(self.metadata_profile)
 
     async def ingest(self) -> JobResult:
         LOGGER.info("Running ingest")
@@ -211,10 +262,12 @@ class JobRunner:
                 result = jobs.run_job(self.job_file_name, self.TEMP_DIR)
             time_end = datetime.now(timezone.utc)
 
+            table = f"{self.metadata_db}.{self.metadata_schema}.ingest_run"
+
             # persist jobs metadata
             write_pydantic_to_db(
-                self.profile,
-                f"{self.db}.{self.metadata_schema}.ingest_run",
+                self.metadata_profile,
+                table,
                 self.job_id,
                 time_start,
                 time_end,
@@ -250,8 +303,8 @@ class JobRunner:
                 result = json.dumps(json.load(run_results))
 
                 write_metadata_json_to_db(
-                    self.profile,
-                    f"{self.db}.{self.metadata_schema}.transform_run",
+                    self.metadata_profile,
+                    f"{self.metadata_db}.{self.metadata_schema}.transform_run",
                     self.job_id,
                     time_start,
                     time_end,
@@ -264,8 +317,8 @@ class JobRunner:
                 result = json.dumps(json.load(catalog))
 
                 write_metadata_json_to_db(
-                    self.profile,
-                    f"{self.db}.{self.metadata_schema}.dbt_catalog",
+                    self.metadata_profile,
+                    f"{self.metadata}.{self.metadata_schema}.dbt_catalog",
                     self.job_id,
                     time_start,
                     time_end,
@@ -286,8 +339,8 @@ class JobRunner:
                     gcs.upload_from_filename(f"{self.TEMP_DIR}/manifest.json")
 
                 write_metadata_text_to_db(
-                    self.profile,
-                    f"{self.db}.{self.metadata_schema}.dbt_manifest",
+                    self.metadata_profile,
+                    f"{self.metadata_db}.{self.metadata_schema}.dbt_manifest",
                     self.job_id,
                     time_start,
                     time_end,
@@ -305,7 +358,7 @@ class JobRunner:
             scan = self.soda()
             scan.disable_telemetry()
             scan.set_data_source_name("inbound")
-            soda_profile = get_soda_profile(self.profile)
+            soda_profile = get_soda_profile(self.metadata_profile)
             scan.add_configuration_yaml_str(soda_profile)
             scan.add_sodacl_yaml_files("./soda")
             scan.set_verbose(False)
@@ -319,8 +372,8 @@ class JobRunner:
             time_test_end = datetime.now(timezone.utc)
 
             write_metadata_json_to_db(
-                self.profile,
-                f"{self.db}.meta.soda_run",
+                self.metadata_profile,
+                f"{self.metadata_db}.meta.soda_run",
                 self.job_id,
                 time_test_start,
                 time_test_end,
@@ -387,13 +440,14 @@ class JobRunner:
 
         LOGGER.info(f"Writing metadata to db for job {self.job_id}")
         write_job_run_result_to_db(
-            self.profile,
+            self.metadata_profile,
             self.job_id,
             time_start,
             time_end,
             json.dumps(results, default=str),
             str(result),
             "",
+            self.connection,
         )
 
         return res

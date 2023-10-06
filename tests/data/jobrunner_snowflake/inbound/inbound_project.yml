@@ -1,0 +1,16 @@
+kind: "inbound"
+version: "0.0.1"
+
+metadata:
+  name: "inbound-test"
+
+tags:
+  - name: "PII"
+    policy: "Mask"
+
+logging:
+  local_path: "./logs"
+  upload: True
+  profile: "snowflake"
+
+

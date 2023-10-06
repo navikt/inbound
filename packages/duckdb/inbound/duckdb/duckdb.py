@@ -28,6 +28,16 @@ class DuckDBConnection(BaseConnection):
 
     def __enter__(self):
         self.connection = self.get_connection()
+        # TODO install extensions from local storage instead
+        try:
+            self.connection.execute("INSTALL icu;")
+            self.connection.execute("LOAD icu;")
+            self.connection.execute("INSTALL spatial;")
+            self.connection.execute("LOAD spatial;")
+        except Exception as e:
+            LOGGER.info(
+                "Error installing duckdb extensions. Please check if http://extensions.duckdb.org is reachable"
+            )
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -197,6 +207,12 @@ class DuckDBConnection(BaseConnection):
                 f"Database error: Could not drop table {table_name} in SQL database {self.name}. {str(e)}"
             )
             return JobResult()
+
+    def execute(self, sql):
+        sql = sql.replace("timestamp_ltz", "timestamp")
+        sql = sql.replace("timestamp_tz", "timestamp")
+        sql = sql.replace("variant", "varchar")
+        return self.connection.execute(sql)
 
 
 def register() -> None:

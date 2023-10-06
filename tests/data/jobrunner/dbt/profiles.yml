@@ -1,0 +1,18 @@
+config:
+  send_anonymous_usage_stats: False
+
+input:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      threads: 24
+
+output:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      threads: 24
+
+

@@ -35,11 +35,10 @@ def run_job(source: Union[str, dict], output_dir: Path = None) -> JobsResult:
     # Get list of jobs to run
     try:
         jobs = JobsModel(**jobs_config).jobs
+        return _run_jobs_in_list(jobs=jobs, output_dir=output_dir)
     except Exception as e:
         LOGGER.info(f"Invalid jobs configuration: {str(e)}")
         return JobsResult()
-
-    return _run_jobs_in_list(jobs=jobs, output_dir=output_dir)
 
 
 def run_jobs(path: str = "./jobs", output_dir: Path = None):
@@ -102,7 +101,7 @@ def _get_json_config(source: Union[str, dict]):
 
 
 def _run_jobs_in_list(
-    jobs: List, mode: Mode = Mode.SEQUENTIAL, output_dir: Path = None
+    jobs: JobsModel, mode: Mode = Mode.SEQUENTIAL, output_dir: Path = None
 ) -> JobsResult:
     # Load plugins for source og target
     source_types = [job.source.type for job in jobs]
@@ -113,14 +112,16 @@ def _run_jobs_in_list(
     # Run E(T)L jobs
     jobs_result = JobsResult(start_date_time=datetime.datetime.now())
     jobs_result.job_name = "Run jobs"
+    LOGGER.info(f"Starting {len(jobs)} jobs:")
+    [LOGGER.info(job.name) for job in jobs]
+    tracemalloc.start()
     for job in jobs:
-        tracemalloc.start()
-        LOGGER.info(
-            f"Starting job: {job.name} ({job.job_id}). Source: {job.source.name or job.source.type}. Target: {job.target.name or job.target.type}"
-        )
         source_connector = connection_factory.create(job.source)
         sink_connector = connection_factory.create(job.target)
         job_instance = JobFactory(source_connector, sink_connector, job, output_dir)()
+        LOGGER.info(
+            f"Starting job: {job.name} ({job.job_id}). Source: {job.source.name or job.source.type}. Target: {job.target.name or job.target.type}"
+        )
         try:
             res = job_instance.run()
             jobs_result.end_date_time = datetime.datetime.now()
@@ -137,8 +138,9 @@ def _run_jobs_in_list(
             jobs_result.result = "FAILED"
             jobs_result.log(output_dir)
         finally:
-            tracemalloc.stop()
             LOGGER.info(
                 f"Finished job: {job.name} ({job.job_id}). Source: {job.source.name or job.source.type}. Target: {job.target.name or job.target.type}"
             )
+    LOGGER.info(f"Finished {len(jobs)}")
+    tracemalloc.stop()
     return jobs_result

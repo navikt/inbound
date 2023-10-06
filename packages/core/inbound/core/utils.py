@@ -31,12 +31,12 @@ def persist_to_target(data: str, target_dir: Path | str, out_file: str) -> Path:
         target_dir = Path(target_dir)
 
     try:
-        LOGGER.info(f"Persisting job_result to {str(target_dir)} / {out_file}.")
+        LOGGER.info(f"Persisting job_result to {str(target_dir)}/{out_file}.")
         with open(str(target_dir / out_file), "a+") as log_file:
             log_file.write(data)
     except Exception as e:
         LOGGER.error(
-            f"Error persisting job_result to {str(target_dir)} / {out_file}. {e}"
+            f"Error persisting job_result to {str(target_dir)}/{out_file}. {e}"
         )
 
     return target_dir

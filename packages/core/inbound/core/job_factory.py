@@ -30,8 +30,6 @@ class Job:
             task_name="Job",
         )
 
-        tracemalloc.start()
-
         try:
             with self.source as source:
                 with self.sink as sink:
@@ -84,7 +82,6 @@ class Job:
                 profiler.print_trace()
             job_result.end_date_time = datetime.datetime.now()
             job_result.memory = tracemalloc.get_traced_memory()
-            tracemalloc.stop()
             job_result.log(self.output_dir)
             return job_result
 

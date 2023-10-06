@@ -1,0 +1,16 @@
+ jobs:
+    - name: "CSV to Snowflake test 1"
+      source:
+        type: "file"
+        spec:
+          path: "../../source.csv"
+          chunksize: 100
+      target: 
+        type: "snowflake"
+        spec:
+          profile: "snowflake"
+          target: "loader"
+          table: "job_runner_test_1"
+          
+
+   

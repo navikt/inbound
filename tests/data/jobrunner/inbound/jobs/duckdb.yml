@@ -1,0 +1,34 @@
+ jobs:
+    - name: "CSV to DuckDB test 1"
+      source:
+        type: "file"
+        spec:
+          path: "../../source.csv"
+          chunksize: 100
+      target: 
+        type: "duckdb"
+        spec:
+          table: "test_1"
+
+    - name: "CSV to DuckDB test 2"
+      source:
+        type: "file"
+        spec:
+          path: "../../source.csv"
+          chunksize: 100
+      target: 
+        type: "duckdb"
+        spec:
+          table: "test_2"
+
+    - name: "CSV to DuckDB test 3"
+      source:
+        type: "file"
+        spec:
+          path: "../../source.csv"
+          chunksize: 100
+      target: 
+        type: "duckdb"
+        spec:
+          table: "test_3"
+

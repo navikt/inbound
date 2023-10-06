@@ -76,7 +76,7 @@ class SQLAlchemyConnection(BaseConnection):
         )
 
         chunk_number = 0
-        total_rows = 1
+        total_rows = 0
         chunk_start_date_time = datetime.datetime.now()
         df = pandas.DataFrame()
 
@@ -85,8 +85,10 @@ class SQLAlchemyConnection(BaseConnection):
             while True:
                 try:
                     df = next(iterator)
+                    rows = len(df)
+                    total_rows += rows
                     LOGGER.info(
-                        f"SQLAlchemy returning batch number {chunk_number} of length {len(df)}. Total rows {total_rows}"
+                        f"SQLAlchemy returning batch number {chunk_number} of length {rows}. Total rows {total_rows}"
                     )
                     job_res.result = "DONE"
                     job_res.start_date_time = chunk_start_date_time
@@ -94,10 +96,9 @@ class SQLAlchemyConnection(BaseConnection):
                     job_res.memory = tracemalloc.get_traced_memory()
                     job_res.chunk_number = chunk_number
                     job_res.size = df.memory_usage(deep=True).sum()
-                    job_res.rows = len(df)
+                    job_res.rows = rows
                     chunk_start_date_time = datetime.datetime.now()
                     chunk_number += 1
-                    total_rows += job_res.rows
                     yield df, job_res
                 except StopIteration:
                     LOGGER.info("Last chunk read")

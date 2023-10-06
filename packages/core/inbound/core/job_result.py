@@ -49,11 +49,11 @@ class JobResult(BaseModel):
 
     @property
     def memory_size(self):
-        return self.memory[0]
+        return self.memory[0] / 1000000
 
     @property
     def memory_peak(self):
-        return self.memory[1]
+        return self.memory[1] / 1000000
 
     @property
     def timezone(self):
@@ -96,7 +96,7 @@ class JobResult(BaseModel):
         return res
 
     def log(self, output_dir: Path = None):
-        LOGGER.info(f"Log jobs: {str(self)}")
+        LOGGER.info(f"Log job: {str(self)}")
 
         data = json.dumps(self.to_json(), default=str)
         persist_to_target(data, output_dir, "job_results.json")
