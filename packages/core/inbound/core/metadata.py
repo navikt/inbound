@@ -27,7 +27,7 @@ def enriched_with_metadata(
         df_out["loaded"] = start_date_time
         df_out["data"] = df.to_dict("records")
 
-        job_res.task_name = "Process: meta+json"
+        job_res.task_name = "Enrich dataframe. Format: meta+json"
         job_res.end_date_time = datetime.datetime.now()
         job_res.memory = tracemalloc.get_traced_memory()
         job_res.result = "DONE"
@@ -40,7 +40,8 @@ def enriched_with_metadata(
             df_out[key] = value
         df_out["loaded"] = start_date_time
 
-        job_res.task_name = "Process: meta"
+        job_res.task_name = "Enrich dataframe. Format: meta"
+        job_res.rows = df_out.size
         job_res.end_date_time = datetime.datetime.now()
         job_res.memory = tracemalloc.get_traced_memory()
         job_res.result = "DONE"
@@ -77,9 +78,8 @@ def enriched_with_metadata(
                 hashlib.md5(data.encode("utf-8")).hexdigest() for data in df_out["RAW"]
             ]
 
-            job_res.task_name = "Create metadata dataframe"
+            job_res.task_name = "Enrich dataframe. Format: log"
             job_res.rows = df_out.size
-            job_res.chunk_number = 1
             job_res.end_date_time = datetime.datetime.now()
             job_res.memory = tracemalloc.get_traced_memory()
             job_res.result = "DONE"

@@ -1,8 +1,6 @@
-import asyncio
 import json
 import os
 import tempfile
-import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from enum import Enum
@@ -244,7 +242,7 @@ class JobRunner:
         connection_loader.load_plugins([self.conn_params["type"]])
         self.connection = connection_factory.create(self.metadata_profile)
 
-    async def ingest(self) -> JobResult:
+    def ingest(self) -> JobResult:
         LOGGER.info("Running ingest")
 
         with use_dir(self.JOBS_DIR):
@@ -270,24 +268,24 @@ class JobRunner:
             )
             return result
 
-    async def transform(self) -> JobResult:
+    def transform(self) -> JobResult:
         LOGGER.info("Running transformations")
 
         try:
             with use_dir(self.DBT_DIR):
-                await _run_process(
+                _run_process(
                     f"source activate && dbt run --profiles-dir {self.DBT_PROFILES_DIR} --target {self.DBT_TARGET}"
                 )
                 return JobResult(result="DONE")
         except:
             return JobResult(result="FAILED")
 
-    async def dbt_generate_docs(self) -> JobResult:
+    def dbt_generate_docs(self) -> JobResult:
         LOGGER.info("Storing metadata")
 
         time_start = datetime.now(timezone.utc)
         with use_dir(self.DBT_DIR):
-            res = await _run_process(
+            res = _run_process(
                 f"source activate && dbt docs generate --profiles-dir {self.DBT_PROFILES_DIR} --target {self.DBT_TARGET}  --target-path {self.TEMP_DIR}"
             )
             time_end = datetime.now(timezone.utc)
@@ -345,7 +343,7 @@ class JobRunner:
             except:
                 return JobResult(result="FAILED")
 
-    async def run(self, request: Request = None) -> JobResult:
+    def run(self, request: Request = None) -> JobResult:
         time_start = datetime.now(timezone.utc)
 
         results = {}
@@ -354,7 +352,7 @@ class JobRunner:
 
         # ingest data
         if Actions.INGEST in self.actions:
-            res = await self.ingest()
+            res = self.ingest()
             results["ingest"] = res.to_json()
             LOGGER.info(res)
             if request and res.result == "DONE":
@@ -365,7 +363,7 @@ class JobRunner:
         if res.result == "DONE" or Actions.INGEST not in self.actions:
             # transform data
             if Actions.TRANSFORM in self.actions:
-                res = await self.transform()
+                res = self.transform()
                 results["transform"] = res.to_json()
                 if request and res.result == "DONE":
                     request.app.state.status[self.job_id] = "TRANSFORM DONE"
@@ -375,7 +373,7 @@ class JobRunner:
 
             # generate docs
             if Actions.METADATA in self.actions:
-                res = await self.dbt_generate_docs()
+                res = self.dbt_generate_docs()
                 results["metadata"] = res.to_json()
                 if request and res.result == "DONE":
                     request.app.state.status[self.job_id] = "METADATA DONE"

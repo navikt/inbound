@@ -1,14 +1,10 @@
-import asyncio
 import os
 from pathlib import Path
-
-import pytest
 
 from inbound.core import job_runner
 
 
-@pytest.mark.asyncio
-async def test_jobrunner():
+def test_jobrunner():
     inbound_profiles_dir = os.getenv("INBOUND_PROFILES_DIR")
     os.environ["INBOUND_PROFILES_DIR"] = str(
         Path.cwd().parent / "data" / "jobrunner" / "inbound"
@@ -36,7 +32,7 @@ async def test_jobrunner():
             target="dev",
             actions=[job_runner.Actions.INGEST],
         )
-        await runner.run()
+        runner.run()
 
         assert True
 
@@ -60,4 +56,4 @@ async def test_jobrunner():
             os.environ["DBT_PROFILES_DIR"] = dbt_profiles_dir
 
 
-asyncio.run(test_jobrunner())
+test_jobrunner()
