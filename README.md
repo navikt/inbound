@@ -56,6 +56,4 @@ test using bucket storage as intermediate beween source and sink instead of pand
 
 create parallel mode in inbound.cors.jobs.py
 
-create inbound.soda package based on https://github.com/navikt/vdl-faktura/blob/main/api/routes/soda.py
-
 complete getting started template project (core/template_project)

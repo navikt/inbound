@@ -53,18 +53,11 @@ ENV PATH="$VIRTUAL_ENVIRONMENT_PATH/bin:$PATH"
 # Copy dbt profile to default dbt profiles directory
 COPY dbt/profiles.yml /home/.dbt/profiles.yml
 
-# Copy soda config to default soda config directory
-COPY soda/config.yml /home/.soda/config.yml
-
 COPY ./api /app/api
 COPY ./apps /app/apps
 COPY ./dbt /app/dbt
 COPY ./inbound /app/inbound
-COPY ./soda /app/soda
-COPY ./streamlit /app/streamlit
 COPY ./main.py /app
-
-COPY ./soda/config.yml /root/.soda/config.yml
 
 WORKDIR /app
 

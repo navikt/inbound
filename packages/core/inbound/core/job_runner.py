@@ -13,7 +13,6 @@ from inbound.core.connection import Connection
 from inbound.core.job_result import JobResult
 from inbound.core.logging import LOGGER
 from inbound.core.models import Profile, Spec
-from inbound.core.soda_profile import get_soda_profile
 from inbound.core.utils import generate_id
 from inbound.gcs import GCSConnection
 
@@ -26,8 +25,6 @@ class Actions(Enum):
     INGEST = 1
     TRANSFORM = 2
     METADATA = 3
-    SODA = 4
-    RE_DATA = 5
 
 
 async def _run_process(cmd_args):
@@ -219,14 +216,11 @@ class JobRunner:
         target: str = os.getenv("DBT_TARGET", "loader"),
         job_file_name: str | None = None,
         actions: List[Actions] = [Actions.INGEST, Actions.TRANSFORM, Actions.METADATA],
-        soda: callable = None,
     ):
         self.job_file_name = job_file_name
         self.actions = actions
-        self.soda = soda
         self.JOBS_DIR = os.getenv("INBOUND_JOBS_DIR", "./inbound/jobs")
         self.DBT_DIR = os.getenv("DBT_DIR", "./dbt")
-        self.SODA_DIR = os.getenv("SODA_DIR", "./soda")
         self.DBT_PROFILES_DIR = os.getenv("DBT_PROFILES_DIR", ".")
         self.GCS_BUCKET = os.getenv("INBOUND_GCS_BUCKET", None)
         self.DBT_TARGET = target
@@ -351,39 +345,6 @@ class JobRunner:
             except:
                 return JobResult(result="FAILED")
 
-    async def run_soda_tests(self) -> JobResult:
-        LOGGER.info("Running soda tests")
-
-        try:
-            scan = self.soda()
-            scan.disable_telemetry()
-            scan.set_data_source_name("inbound")
-            soda_profile = get_soda_profile(self.metadata_profile)
-            scan.add_configuration_yaml_str(soda_profile)
-            scan.add_sodacl_yaml_files("./soda")
-            scan.set_verbose(False)
-
-            time_test_start = datetime.now(timezone.utc)
-
-            scan.execute()
-
-            result = json.dumps(scan.get_scan_results())
-
-            time_test_end = datetime.now(timezone.utc)
-
-            write_metadata_json_to_db(
-                self.metadata_profile,
-                f"{self.metadata_db}.meta.soda_run",
-                self.job_id,
-                time_test_start,
-                time_test_end,
-                result,
-                self.connection,
-            )
-            return JobResult(result="DONE")
-        except:
-            return JobResult(result="FAILED")
-
     async def run(self, request: Request = None) -> JobResult:
         time_start = datetime.now(timezone.utc)
 
@@ -418,16 +379,6 @@ class JobRunner:
                 results["metadata"] = res.to_json()
                 if request and res.result == "DONE":
                     request.app.state.status[self.job_id] = "METADATA DONE"
-                LOGGER.info(res)
-
-            # run soda tests
-            if Actions.SODA in self.actions:
-                res = await self.run_soda_tests()
-                results["soda"] = res.to_json()
-                if request and res.result == "DONE":
-                    request.app.state.status[self.job_id] = "SODA DONE"
-                if res.result != "DONE":
-                    result = False
                 LOGGER.info(res)
 
             # signal job completed

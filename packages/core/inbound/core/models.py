@@ -131,30 +131,3 @@ class JobModel(BaseModel):
 
 class JobsModel(BaseModel):
     jobs: List[JobModel]
-
-
-class SodaSpec(BaseModel):
-    type: str
-    host: Optional[str] = None
-    account: str
-    username: str
-    password: str
-    role: str
-    database: str
-    warehouse: str
-    database_schema: str = Field(None, alias="schema")
-
-
-class SodaProfile(RootModel):
-    root: Dict[str, SodaSpec]
-
-    def __getitem__(self, item):
-        return self.root[item]
-
-    def dict(self, **kwargs):
-        kwargs.setdefault("by_alias", True)
-        return super().model_dump(**kwargs)
-
-    def json(self, **kwargs):
-        kwargs.setdefault("by_alias", True)
-        return super().model_dump_json(**kwargs)
