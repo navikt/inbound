@@ -119,6 +119,7 @@ class SQLAlchemyConnection(BaseConnection):
         df: pandas.DataFrame,
         table: str,
     ) -> None:
+        LOGGER.info("SQLAlchemy to SQL")
         df.to_sql(
             table, con=self.connection, index=False, if_exists="append", method="multi"
         )
@@ -153,9 +154,7 @@ class SQLAlchemyConnection(BaseConnection):
                 job_res = self.drop(table, job_res)
                 job_res.log()
 
-            LOGGER.info(
-                f"SQLAlchemy persisting dataframe chunk {chunk_number} to {table}"
-            )
+            LOGGER.info(f"From pandas {chunk_number} to {table}")
             self.to_sql(df, table)
 
             job_res.memory = tracemalloc.get_traced_memory()

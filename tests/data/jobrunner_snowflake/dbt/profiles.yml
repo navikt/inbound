@@ -1,7 +1,7 @@
 config:
   send_anonymous_usage_stats: False
 
-snowflake:
+inbound_test:
   target: loader
   outputs:
     loader:
@@ -12,8 +12,31 @@ snowflake:
       role: "test_role"
       database: "test_database"
       warehouse: "test_warehouse"
-      schema:  "test_schema"
+      schema:  "raw"
       threads: 1
       client_session_keep_alive: False
       query_tag: "inbound"
-
+    transformer:
+      type: "snowflake"
+      account: "{{env_var('SNOWFLAKE_TEST_ACCOUNT')}}"
+      user: "{{env_var('SNOWFLAKE_TEST_USER')}}" 
+      password: "{{env_var('SNOWFLAKE_TEST_PASSWORD')}}"
+      role: "test_role"
+      database: "test_database"
+      warehouse: "test_warehouse"
+      schema:  "stages"
+      threads: 1
+      client_session_keep_alive: False
+      query_tag: "inbound"
+    metadata:
+      type: "snowflake"
+      account: "{{env_var('SNOWFLAKE_TEST_ACCOUNT')}}"
+      user: "{{env_var('SNOWFLAKE_TEST_USER')}}" 
+      password: "{{env_var('SNOWFLAKE_TEST_PASSWORD')}}"
+      role: "test_role"
+      database: "test_database"
+      warehouse: "test_warehouse"
+      schema: "meta"
+      threads: 1
+      client_session_keep_alive: False
+      query_tag: "inbound"

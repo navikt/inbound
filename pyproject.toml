@@ -37,6 +37,10 @@ inbound-oracle = { path="./packages/oracle", develop=true }
 inbound-snowflake = { path="./packages/snowflake", develop=true }
 inbound-postgres = { path="./packages/postgres", develop=true }
 
+snowbird = {git = "https://github.com/navikt/snowbird.git"}
+dbt-core = "^1.5.0"
+dbt-snowflake = "^1.5.0"
+
 [tool.pytest.ini_options]
 pythonpath = [".", "inbound"]
 filterwarnings = ["ignore::DeprecationWarning"]

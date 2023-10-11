@@ -63,3 +63,6 @@ testcov:
 	@coverage html
 	@echo "opening coverage html in browser"
 	@open htmlcov/index.html
+
+setup_snowflake:
+	snowbird run

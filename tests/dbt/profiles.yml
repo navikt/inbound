@@ -21,7 +21,7 @@ snowflake_test:
       role: "test_role"
       database: "test_database"
       warehouse: "test_warehouse"
-      schema:  "test_schema"
+      schema:  "meta"
       threads: 1
       client_session_keep_alive: False
       query_tag: "eyeshare"

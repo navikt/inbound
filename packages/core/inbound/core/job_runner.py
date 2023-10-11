@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import List, Protocol
 
+from dbt.cli.main import dbtRunner, dbtRunnerResult
+
 from inbound.core import connection_factory, connection_loader, dbt_profile, jobs
 from inbound.core.connection import Connection
 from inbound.core.job_result import JobResult
@@ -22,15 +24,8 @@ class Request(Protocol):
 class Actions(Enum):
     INGEST = 1
     TRANSFORM = 2
-    METADATA = 3
-
-
-async def _run_process(cmd_args):
-    process = await asyncio.create_subprocess_shell(
-        cmd_args, stdout=asyncio.subprocess.PIPE
-    )
-    res, _ = await process.communicate()
-    return res.decode("utf-8")
+    TEST = 3
+    METADATA = 4
 
 
 # utility function to temporarily swith working directory
@@ -90,7 +85,7 @@ def write_pydantic_to_db(
                 )
     except Exception as e:
         LOGGER.error(
-            f"Error persisting job metadata to table {metadata_table} with profile {profile.type}.{e}"
+            f"Error persisting job pydantic metadata to table {metadata_table} with profile {profile.type}.{e}"
         )
 
 
@@ -100,7 +95,7 @@ def write_metadata_json_to_db(
     job_id: str,
     time_start: datetime,
     time_end: datetime,
-    blob: object,
+    blob: dict,
     connection: Connection,
 ):
     if connection is None:
@@ -109,6 +104,7 @@ def write_metadata_json_to_db(
 
     time_end = datetime.now(timezone.utc)
     metadata_table = get_metadata_table_name(profile, table)
+
     try:
         LOGGER.info(f"Persisting metadata json to table {metadata_table}")
         with connection as db:
@@ -121,7 +117,7 @@ def write_metadata_json_to_db(
                 )
                 db.execute(
                     f"""insert into {metadata_table}(job_id, time_start, time_end, raw)
-                        select '{job_id}', '{time_start}', '{time_end}', parse_json($${blob}$$);
+                        select '{job_id}', '{time_start}', '{time_end}', parse_json($${json.dumps(blob)}$$);
                     """
                 )
             else:
@@ -133,7 +129,7 @@ def write_metadata_json_to_db(
                 )
                 db.execute(
                     f"""insert into {metadata_table}(job_id, time_start, time_end, raw)
-                        values ('{job_id}', '{time_start}', '{time_end}', '{blob.model_dump_json()}');
+                        values ('{job_id}', '{time_start}', '{time_end}', '{blob}');
                     """
                 )
     except Exception as e:
@@ -213,33 +209,38 @@ class JobRunner:
         profile: str,
         target: str = os.getenv("DBT_TARGET", "loader"),
         job_file_name: str | None = None,
-        actions: List[Actions] = [Actions.INGEST, Actions.TRANSFORM, Actions.METADATA],
+        actions: List[Actions] = [
+            Actions.INGEST,
+            Actions.TRANSFORM,
+            Actions.TEST,
+            Actions.METADATA,
+        ],
     ):
         self.job_file_name = job_file_name
         self.actions = actions
         self.JOBS_DIR = os.getenv("INBOUND_JOBS_DIR", "./inbound/jobs")
         self.DBT_DIR = os.getenv("DBT_DIR", "./dbt")
         self.DBT_PROFILES_DIR = os.getenv("DBT_PROFILES_DIR", ".")
+        self.DBT_PROJECT_DIR = os.getenv("DBT_PROJECT_DIR", ".")
+        self.DBT_TARGET = os.getenv("DBT_TARGET", "transformer")
         self.GCS_BUCKET = os.getenv("INBOUND_GCS_BUCKET", None)
-        self.DBT_TARGET = target
-        self.DBT_PROFILE = profile
         self.TEMP_DIR = tempfile.mkdtemp()
 
         self.job_id = generate_id()
 
-        self.conn_params = dbt_profile.dbt_connection_params(
-            self.DBT_PROFILE, self.DBT_TARGET, self.DBT_DIR
+        self.metadata_conn_params = dbt_profile.dbt_connection_params(
+            profile, target, self.DBT_DIR
         )
         self.metadata_profile = Profile(
-            type=self.conn_params.get("type") or "snowflake",
+            type=self.metadata_conn_params.get("type") or "snowflake",
             name="jobrunner",
-            spec=Spec(**self.conn_params),
+            spec=Spec(**self.metadata_conn_params),
         )
 
-        self.metadata_db = self.conn_params.get("database") or "meta"
-        self.metadata_schema = self.conn_params.get("schema") or "job_runner"
+        self.metadata_db = self.metadata_conn_params.get("database") or "meta"
+        self.metadata_schema = self.metadata_conn_params.get("schema") or "job_runner"
 
-        connection_loader.load_plugins([self.conn_params["type"]])
+        connection_loader.load_plugins([self.metadata_conn_params["type"]])
         self.connection = connection_factory.create(self.metadata_profile)
 
     def ingest(self) -> JobResult:
@@ -269,79 +270,167 @@ class JobRunner:
             return result
 
     def transform(self) -> JobResult:
-        LOGGER.info("Running transformations")
-
+        LOGGER.info("Running dbt transformations")
+        time_start = datetime.now(timezone.utc)
         try:
-            with use_dir(self.DBT_DIR):
-                _run_process(
-                    f"source activate && dbt run --profiles-dir {self.DBT_PROFILES_DIR} --target {self.DBT_TARGET}"
-                )
-                return JobResult(result="DONE")
-        except:
+            dbt = dbtRunner()
+            args = [
+                "run",
+                "--project-dir",
+                self.DBT_PROJECT_DIR,
+                "--profiles-dir",
+                self.DBT_PROFILES_DIR,
+                "--target",
+                self.DBT_TARGET,
+                "--target-path",
+                self.TEMP_DIR,
+            ]
+            res: dbtRunnerResult = dbt.invoke(args)
+            time_end = datetime.now(timezone.utc)
+            for r in res.result:
+                LOGGER.info(r.to_dict())
+            return JobResult(result="DONE", time_start=time_start, time_end=time_end)
+        except Exception as e:
+            LOGGER.info(f"Error running transformations. {e}")
             return JobResult(result="FAILED")
 
-    def dbt_generate_docs(self) -> JobResult:
-        LOGGER.info("Storing metadata")
-
+    def run_dbt_tests(self) -> JobResult:
+        LOGGER.info("Running dbt tests")
         time_start = datetime.now(timezone.utc)
-        with use_dir(self.DBT_DIR):
-            res = _run_process(
-                f"source activate && dbt docs generate --profiles-dir {self.DBT_PROFILES_DIR} --target {self.DBT_TARGET}  --target-path {self.TEMP_DIR}"
-            )
+        try:
+            dbt = dbtRunner()
+            args = [
+                "test",
+                "--project-dir",
+                self.DBT_PROJECT_DIR,
+                "--profiles-dir",
+                self.DBT_PROFILES_DIR,
+                "--target",
+                self.DBT_TARGET,
+                "--target-path",
+                self.TEMP_DIR,
+            ]
+            res: dbtRunnerResult = dbt.invoke(args)
             time_end = datetime.now(timezone.utc)
 
-            # publish dbt results to Snowflake
-            with open(f"{self.TEMP_DIR}/run_results.json") as run_results:
-                result = json.dumps(json.load(run_results))
+            table = f"{self.metadata_db}.{self.metadata_schema}.dbt_tests"
+            write_metadata_json_to_db(
+                self.metadata_profile,
+                table,
+                self.job_id,
+                time_start,
+                time_end,
+                res.result.to_dict(),
+                self.connection,
+            )
+            return JobResult(result="DONE", time_start=time_start, time_end=time_end)
+        except Exception as e:
+            LOGGER.info(f"Error running dbt tests. {e}")
+            return JobResult(result="FAILED")
 
-                write_metadata_json_to_db(
-                    self.metadata_profile,
-                    f"{self.metadata_db}.{self.metadata_schema}.transform_run",
-                    self.job_id,
-                    time_start,
-                    time_end,
-                    result,
-                    self.connection,
+    def generate_dbt_artifacts(self) -> JobResult:
+        LOGGER.info("Storing metadata")
+        time_start = datetime.now(timezone.utc)
+        LOGGER.info("Generating dbt docs")
+        try:
+            dbt = dbtRunner()
+            args = [
+                "docs",
+                "generate",
+                "--project-dir",
+                self.DBT_PROJECT_DIR,
+                "--profiles-dir",
+                self.DBT_PROFILES_DIR,
+                "--target",
+                self.DBT_TARGET,
+                "--target-path",
+                self.TEMP_DIR,
+            ]
+            res: dbtRunnerResult = dbt.invoke(args)
+            if not res.success:
+                LOGGER.error(
+                    f"Error generating dbt docs. {json.dumps(res.result.to_dict)}"
                 )
-
-            # publish dbt catalog to Snowflake
-            with open(f"{self.TEMP_DIR}/catalog.json") as catalog:
-                result = json.dumps(json.load(catalog))
-
-                write_metadata_json_to_db(
-                    self.metadata_profile,
-                    f"{self.metadata}.{self.metadata_schema}.dbt_catalog",
-                    self.job_id,
-                    time_start,
-                    time_end,
-                    result,
-                    self.connection,
-                )
-
-            # publish dbt manifest to GCS and write url to Snowflake
-            try:
-                bucket = self.GCS_BUCKET
-                blob = "dbt_manifest"
-                format = "json"
-                prefix = self.job_id
-                profile = Profile(
-                    spec=Spec(blob=blob, bucket=bucket, prefix=prefix, format=format)
-                )
-                with GCSConnection(profile=profile) as gcs:
-                    gcs.upload_from_filename(f"{self.TEMP_DIR}/manifest.json")
-
-                write_metadata_text_to_db(
-                    self.metadata_profile,
-                    f"{self.metadata_db}.{self.metadata_schema}.dbt_manifest",
-                    self.job_id,
-                    time_start,
-                    time_end,
-                    f"gs://{bucket}/{self.job_id}/{blob}.json",
-                    self.connection,
-                )
-                return JobResult(result="DONE")
-            except:
                 return JobResult(result="FAILED")
+            time_end = datetime.now(timezone.utc)
+            return JobResult(result="DONE", time_start=time_start, time_end=time_end)
+        except Exception as e:
+            LOGGER.error(f"Error generating dbt docs. {e}")
+            return JobResult(result="FAILED")
+
+    def upload_dbt_artifacts(self) -> JobResult:
+        LOGGER.info("Publish dbt results to metadata database")
+        time_start = datetime.now(timezone.utc)
+        try:
+            with open(f"{self.TEMP_DIR}/run_results.json") as run_results:
+                result = json.load(run_results)
+                table = f"{self.metadata_db}.{self.metadata_schema}.transform_run"
+                time_end = datetime.now(timezone.utc)
+                write_metadata_json_to_db(
+                    self.metadata_profile,
+                    table,
+                    self.job_id,
+                    time_start,
+                    time_end,
+                    result,
+                    self.connection,
+                )
+            return JobResult(result="DONE", time_start=time_start, time_end=time_end)
+        except Exception as e:
+            LOGGER.error(f"Error publishing dbt results to metadata database. {e}")
+
+    def publish_dbt_catalog(self) -> JobResult:
+        LOGGER.info("Publish dbt catalog to metadata database")
+        time_start = datetime.now(timezone.utc)
+        try:
+            with open(f"{self.TEMP_DIR}/catalog.json") as catalog:
+                result = json.load(catalog)
+                table = f"{self.metadata_db}.{self.metadata_schema}.dbt_catalog"
+                time_end = datetime.now(timezone.utc)
+                write_metadata_json_to_db(
+                    self.metadata_profile,
+                    table,
+                    self.job_id,
+                    time_start,
+                    time_end,
+                    result,
+                    self.connection,
+                )
+            return JobResult(result="DONE", time_start=time_start, time_end=time_end)
+        except Exception as e:
+            LOGGER.error(f"Error publishing dbt catalog. {e}")
+            return JobResult(result="FAILED")
+
+    def publish_dbt_manifest(self) -> JobResult:
+        LOGGER.info("Publish dbt manifest to GCS and write url to metadata database")
+        time_start = datetime.now(timezone.utc)
+        try:
+            bucket = self.GCS_BUCKET
+            blob = "dbt_manifest"
+            format = "json"
+            prefix = self.job_id
+            gcs_filename = f"gs://{bucket}/{self.job_id}/{blob}.json"
+            table = f"{self.metadata_db}.{self.metadata_schema}.dbt_manifest"
+            profile = Profile(
+                spec=Spec(blob=blob, bucket=bucket, prefix=prefix, format=format)
+            )
+            with GCSConnection(profile=profile) as gcs:
+                gcs.upload_from_filename(f"{self.TEMP_DIR}/manifest.json")
+
+            time_end = datetime.now(timezone.utc)
+            write_metadata_text_to_db(
+                self.metadata_profile,
+                table,
+                self.job_id,
+                time_start,
+                time_end,
+                gcs_filename,
+                self.connection,
+            )
+            return JobResult(result="DONE", time_start=time_start, time_end=time_end)
+        except Exception as e:
+            LOGGER.error(f"Error uploading dbt_manifest to gcs. {e}")
+            return JobResult(result="FAILED")
 
     def run(self, request: Request = None) -> JobResult:
         time_start = datetime.now(timezone.utc)
@@ -360,33 +449,40 @@ class JobRunner:
             if res.result != "DONE":
                 result = False
 
-        if res.result == "DONE" or Actions.INGEST not in self.actions:
-            # transform data
-            if Actions.TRANSFORM in self.actions:
-                res = self.transform()
-                results["transform"] = res.to_json()
-                if request and res.result == "DONE":
-                    request.app.state.status[self.job_id] = "TRANSFORM DONE"
-                if res.result != "DONE":
-                    result = False
-                LOGGER.info(res)
+        # transform data
+        if Actions.TRANSFORM in self.actions:
+            res = self.transform()
+            results["transform"] = res.to_json()
+            if request and res.result == "DONE":
+                request.app.state.status[self.job_id] = "TRANSFORM DONE"
 
-            # generate docs
-            if Actions.METADATA in self.actions:
-                res = self.dbt_generate_docs()
-                results["metadata"] = res.to_json()
-                if request and res.result == "DONE":
-                    request.app.state.status[self.job_id] = "METADATA DONE"
-                LOGGER.info(res)
+        # run dbt tests
+        if Actions.TEST in self.actions:
+            res = self.run_dbt_tests()
+            if request and res.result == "DONE":
+                request.app.state.status[self.job_id] = "TESTS DONE"
+            LOGGER.info(res)
 
-            # signal job completed
-            LOGGER.info("Job completed")
-            if request is not None:
-                request.app.state.status[self.job_id] = "DONE"
+        # generate docs and publish artifacts
+        if Actions.METADATA in self.actions:
+            res = self.generate_dbt_artifacts()
+            if res.result == "DONE":
+                res = self.upload_dbt_artifacts()
+            if res.result == "DONE":
+                res = self.publish_dbt_catalog()
+            if res.result == "DONE":
+                res = self.publish_dbt_manifest()
+            if request and res.result == "DONE":
+                request.app.state.status[self.job_id] = "METADATA DONE"
+            LOGGER.info(res)
+
+        # signal job completed
+        LOGGER.info("Job completed")
+        if request is not None:
+            request.app.state.status[self.job_id] = "DONE"
 
         # persist job results
         time_end = datetime.now(timezone.utc)
-
         LOGGER.info(f"Writing metadata to db for job {self.job_id}")
         write_job_run_result_to_db(
             self.metadata_profile,
@@ -398,5 +494,4 @@ class JobRunner:
             "",
             self.connection,
         )
-
-        return res
+        return JobResult(result="DONE", time_start=time_start, time_end=time_end)

@@ -3,14 +3,14 @@
       source:
         type: "file"
         spec:
-          path: "../../source.csv"
+          path: "{{ env_var('DATA_SOURCE_FILE') }}"
           chunksize: 100
       target: 
         type: "snowflake"
         spec:
-          profile: "snowflake"
+          profile: "inbound_test"
           target: "loader"
-          table: "job_runner_test_1"
+          table: "test"
           
 
    
