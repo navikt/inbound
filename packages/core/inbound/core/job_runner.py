@@ -199,7 +199,7 @@ def write_job_run_result_to_db(
             )
     except Exception as e:
         LOGGER.info(
-            f"Error persisting job result to db. Profile: {profile.type}. Table: {metadata_table}. {e}"
+            f"Error persisting job result to db. Profile type: {profile.type}. Table: {metadata_table}. {e}"
         )
 
 
@@ -222,7 +222,7 @@ class JobRunner:
         self.DBT_DIR = os.getenv("DBT_DIR", "./dbt")
         self.DBT_PROFILES_DIR = os.getenv("DBT_PROFILES_DIR", ".")
         self.DBT_PROJECT_DIR = os.getenv("DBT_PROJECT_DIR", ".")
-        self.DBT_TARGET = os.getenv("DBT_TARGET", "transformer")
+        self.DBT_TARGET = target
         self.GCS_BUCKET = os.getenv("INBOUND_GCS_BUCKET", None)
         self.TEMP_DIR = tempfile.mkdtemp()
 
