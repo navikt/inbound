@@ -349,7 +349,7 @@ class JobRunner:
             res: dbtRunnerResult = dbt.invoke(args)
             if not res.success:
                 LOGGER.error(
-                    f"Error generating dbt docs. {json.dumps(res.result.to_dict)}"
+                    f"Error generating dbt docs. Success: {res.success}. Profiles dir: {self.DBT_PROFILES_DIR}. Target: {self.DBT_TARGET}. Out dir: {self.TEMP_DIR}"
                 )
                 return JobResult(result="FAILED")
             time_end = datetime.now(timezone.utc)
