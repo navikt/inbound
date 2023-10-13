@@ -60,6 +60,9 @@ def write_pydantic_to_db(
         LOGGER.info(f"Persisting job metadata to table {metadata_table}")
         with connection as db:
             if profile.type == "snowflake":
+                if profile.spec.warehouse is not None:
+                    LOGGER.info(f"Use snowflake warehouse {profile.spec.warehouse}")
+                    db.execute(f"use warehouse {profile.spec.warehouse}")
                 db.execute(
                     f"""
                     create table if not exists 
@@ -109,6 +112,9 @@ def write_metadata_json_to_db(
         LOGGER.info(f"Persisting metadata json to table {metadata_table}")
         with connection as db:
             if profile.type == "snowflake":
+                if profile.spec.warehouse is not None:
+                    LOGGER.info(f"Use snowflake warehouse {profile.spec.warehouse}")
+                    db.execute(f"use warehouse {profile.spec.warehouse}")
                 db.execute(
                     f"""
                     create table if not exists 
@@ -152,6 +158,9 @@ def write_metadata_text_to_db(
     try:
         LOGGER.info(f"Persisting metadata text to table {metadata_table}")
         with connection as db:
+            if profile.type == "snowflake" and profile.spec.warehouse is not None:
+                LOGGER.info(f"Use snowflake warehouse {profile.spec.warehouse}")
+                db.execute(f"use warehouse {profile.spec.warehouse}")
             db.execute(
                 f"""
                 create table if not exists 
@@ -186,6 +195,9 @@ def write_job_run_result_to_db(
             f"Persisting job result to db. Profile: {profile.type}. Table: {metadata_table}"
         )
         with connection as db:
+            if profile.type == "snowflake" and profile.spec.warehouse is not None:
+                LOGGER.info(f"Use snowflake warehouse {profile.spec.warehouse}")
+                db.execute(f"use warehouse {profile.spec.warehouse}")
             db.execute(
                 f"""
                 create table if not exists 
