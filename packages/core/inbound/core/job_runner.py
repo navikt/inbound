@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import tempfile
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -341,7 +342,9 @@ class JobRunner:
             return JobResult(result="FAILED")
 
     def generate_dbt_artifacts(self) -> JobResult:
-        LOGGER.info("Storing metadata")
+        LOGGER.info(
+            f"Generting dbt docs with profiles dir: {self.DBT_PROFILES_DIR} and target path: {self.TEMP_DIR}"
+        )
         time_start = datetime.now(timezone.utc)
         LOGGER.info("Generating dbt docs")
         try:
@@ -506,4 +509,10 @@ class JobRunner:
             "",
             self.connection,
         )
+
+        try:
+            shutil.rmtree(self.TEMP_DIR)
+        except Exception as e:
+            LOGGER.info(f"Error deleting temp directory: {self.TEMP_DIR}. {e}")
+
         return JobResult(result="DONE", time_start=time_start, time_end=time_end)
