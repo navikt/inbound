@@ -233,8 +233,8 @@ class JobRunner:
         self.actions = actions
         self.JOBS_DIR = os.getenv("INBOUND_JOBS_DIR", "./inbound/jobs")
         self.DBT_DIR = os.getenv("DBT_DIR", "./dbt")
-        self.DBT_PROFILES_DIR = os.getenv("DBT_PROFILES_DIR", ".")
-        self.DBT_PROJECT_DIR = os.getenv("DBT_PROJECT_DIR", ".")
+        self.DBT_PROFILES_DIR = os.getenv("DBT_PROFILES_DIR", "./dbt")
+        self.DBT_PROJECT_DIR = os.getenv("DBT_PROJECT_DIR", "./dbt")
         self.DBT_TARGET = target
         self.GCS_BUCKET = os.getenv("INBOUND_GCS_BUCKET", None)
         self.TEMP_DIR = tempfile.mkdtemp()
