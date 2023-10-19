@@ -24,5 +24,7 @@ def create(profile: Profile) -> Connection:
     try:
         creator_func = connection_creation_funcs[connection_type]
     except KeyError:
-        raise ValueError(f"unknown connection type {str(connection_type)}") from None
+        raise ValueError(
+            f"unknown connection type {str(connection_type)}. Please install the missing inbound connector plugin"
+        ) from None
     return creator_func(profile.model_copy())
