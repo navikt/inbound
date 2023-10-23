@@ -24,7 +24,9 @@ class Mode(Enum):
     PARALELL = 2
 
 
-def run_job(source: Union[str, dict], output_dir: Path = None) -> JobsResult:
+def run_job(
+    source: Union[str, dict], output_dir: Path = None, callback: str = None
+) -> JobsResult:
     LOGGER.info(f"Running job {str(source)}")
     jobs_spec = _get_json_config(source)
 
@@ -35,7 +37,7 @@ def run_job(source: Union[str, dict], output_dir: Path = None) -> JobsResult:
     # Get list of jobs to run
     try:
         jobs = JobsModel(**jobs_config).jobs
-        return _run_jobs_in_list(jobs=jobs, output_dir=output_dir)
+        return _run_jobs_in_list(jobs=jobs, output_dir=output_dir, callback=callback)
     except Exception as e:
         LOGGER.info(f"Invalid jobs configuration: {str(e)}")
         return JobsResult()
@@ -101,7 +103,10 @@ def _get_json_config(source: Union[str, dict]):
 
 
 def _run_jobs_in_list(
-    jobs: JobsModel, mode: Mode = Mode.SEQUENTIAL, output_dir: Path = None
+    jobs: JobsModel,
+    mode: Mode = Mode.SEQUENTIAL,
+    output_dir: Path = None,
+    callback: str = None,
 ) -> JobsResult:
     # Load plugins for source og target
     source_types = [job.source.type for job in jobs]
@@ -141,6 +146,10 @@ def _run_jobs_in_list(
             LOGGER.info(
                 f"Finished job: {job.name} ({job.job_id}). Source: {job.source.name or job.source.type}. Target: {job.target.name or job.target.type}"
             )
+
+            if callback is not None:
+                LOGGER.info(f"callback end job: {callback}")
+
     LOGGER.info(f"Finished {len(jobs)}")
     tracemalloc.stop()
     return jobs_result

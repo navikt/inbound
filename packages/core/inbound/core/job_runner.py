@@ -5,7 +5,7 @@ import tempfile
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from enum import Enum
-from typing import List, Protocol
+from typing import List, Protocol, Union
 
 from dbt.cli.main import dbtRunner, dbtRunnerResult
 
@@ -219,7 +219,7 @@ def write_job_run_result_to_db(
 class JobRunner:
     def __init__(
         self,
-        profile: str,
+        profile: str | None = None,
         target: str = os.getenv("DBT_TARGET", "loader"),
         job_file_name: str | None = None,
         actions: List[Actions] = [
@@ -228,6 +228,8 @@ class JobRunner:
             Actions.TEST,
             Actions.METADATA,
         ],
+        job_id: str = None,
+        callback: str = None,
     ):
         self.job_file_name = job_file_name
         self.actions = actions
@@ -239,7 +241,7 @@ class JobRunner:
         self.GCS_BUCKET = os.getenv("INBOUND_GCS_BUCKET", None)
         self.TEMP_DIR = tempfile.mkdtemp()
 
-        self.job_id = generate_id()
+        self.job_id = job_id or generate_id()
 
         self.metadata_conn_params = dbt_profile.dbt_connection_params(
             profile, target, self.DBT_DIR
@@ -255,6 +257,22 @@ class JobRunner:
 
         connection_loader.load_plugins([self.metadata_conn_params["type"]])
         self.connection = connection_factory.create(self.metadata_profile)
+        self.callback = callback
+
+    def get_job_id(self) -> str:
+        return self.job_id
+
+    @staticmethod
+    def get_all_jobs(
+        jobs_dir: str = os.getenv("INBOUND_JOBS_DIR", "./inbound/jobs")
+    ) -> List[str]:
+        job_definition_files = [
+            os.path.join(d, x)
+            for d, _, files in os.walk(jobs_dir)
+            for x in files
+            if x.endswith(".yml")
+        ]
+        return job_definition_files
 
     def ingest(self) -> JobResult:
         LOGGER.info("Running ingest")
