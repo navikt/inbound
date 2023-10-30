@@ -12,9 +12,6 @@ from inbound.core.jobs import run_job, run_jobs
 from inbound.core.models import Profile, Spec
 from inbound.core.template_project.template import init_template_project
 
-# from pygit2 import Repository
-# from inbound.snowflake import SnowflakeConnection
-
 __version__ = importlib.metadata.version(__package__ or __name__)
 
 

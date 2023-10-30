@@ -99,7 +99,7 @@ class SnowflakeConnection(SQLAlchemyConnection):
                         LOGGER.error(f"Error executing {sql}. {e}")
             except Exception as e:
                 LOGGER.error(
-                    f"Error copying from dir til snowflake table {table}. Dir {temp_dir_name}. {e}"
+                    f"Error copying from dir to snowflake table {table}. Dir {temp_dir_name}. {e}"
                 )
                 return "FAILED", JobResult()
             finally:

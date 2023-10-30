@@ -11,7 +11,11 @@ python = "^3.10.0"
 inbound-core = { version = "0.0.1" }
 inbound-sqlalchemy = { version = "0.0.1" }
 inbound-gcs = { version = "0.0.1" }
-snowflake-sqlalchemy =  { version = "^1.5.0", extras = ["pandas"] }
+
+snowflake-connector-python = "<4.0.0"
+snowflake-sqlalchemy = "^1.5.0"
+
+#snowflake-sqlalchemy =  { version = "^1.5.0", extras = ["pandas"] }
 
 [tool.poetry.group.dev.dependencies]
 inbound-core = { path="../core", develop=true }
