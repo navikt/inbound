@@ -39,7 +39,7 @@ inbound-postgres = { path="./packages/postgres", develop=true }
 
 snowbird = {git = "https://github.com/navikt/snowbird.git"}
 dbt-core = "^1.5.0"
-dbt-snowflake = "^1.5.0"
+dbt-snowflake = "^1.5.0" #cant upgrade yet since later versins depend on pydantic-core <2.0 and we have pydantic > 2.3
 
 [tool.pytest.ini_options]
 pythonpath = [".", "inbound"]
