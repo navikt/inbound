@@ -126,7 +126,8 @@ class SnowflakeConnection(SQLAlchemyConnection):
                 # parallel=99
                 quote_identifiers=False,
             )"""
-
+            if df.empty:
+                return
             df.to_sql(
                 table,
                 con=self.connection,
