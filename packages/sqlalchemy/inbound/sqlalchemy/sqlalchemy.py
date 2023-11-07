@@ -81,7 +81,9 @@ class SQLAlchemyConnection(BaseConnection):
         df = pandas.DataFrame()
 
         try:
-            iterator = pandas.read_sql(query, self.engine, chunksize=chunk_size)
+            iterator = pandas.read_sql(
+                query, self.engine, chunksize=chunk_size, dtype=str
+            )
             while True:
                 try:
                     df = next(iterator)
