@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: main
+    description: inbound_test raw data
+    tables:
+      - name: test
+        description: test table
