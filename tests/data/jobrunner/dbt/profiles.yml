@@ -1,18 +1,9 @@
 config:
   send_anonymous_usage_stats: False
 
-input:
+inbound_test:
   target: dev
   outputs:
     dev:
       type: duckdb
-      threads: 24
-
-output:
-  target: dev
-  outputs:
-    dev:
-      type: duckdb
-      threads: 24
-
-
+      path: "{{ env_var('DATABASE_FILE') }}"

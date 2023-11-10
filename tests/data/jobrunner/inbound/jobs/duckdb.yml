@@ -1,34 +1,27 @@
  jobs:
+    - name: "CSV to DuckDB"
+      source:
+        type: "file"
+        spec:
+          path: "{{ env_var('DATA_SOURCE_FILE') }}"
+          chunksize: 100
+      target: 
+        type: "duckdb"
+        spec:
+          table: "test"
+          database: "{{ env_var('DATABASE_FILE') }}"
     - name: "CSV to DuckDB test 1"
       source:
         type: "file"
         spec:
-          path: "../../source.csv"
+          path: "{{ env_var('DATA_SOURCE_FILE') }}"
           chunksize: 100
       target: 
         type: "duckdb"
         spec:
           table: "test_1"
+          database: "{{ env_var('DATABASE_FILE') }}"
 
-    - name: "CSV to DuckDB test 2"
-      source:
-        type: "file"
-        spec:
-          path: "../../source.csv"
-          chunksize: 100
-      target: 
-        type: "duckdb"
-        spec:
-          table: "test_2"
 
-    - name: "CSV to DuckDB test 3"
-      source:
-        type: "file"
-        spec:
-          path: "../../source.csv"
-          chunksize: 100
-      target: 
-        type: "duckdb"
-        spec:
-          table: "test_3"
+
 

@@ -15,7 +15,7 @@ def test_validate_schema(data_path):
             assert False
 
     try:
-        JobsModel.parse_obj(jobs_spec)
+        JobsModel.model_validate(jobs_spec)
         assert True
     except ValidationError as e:
         LOGGER.info(f"Error parsing job: {e}")
