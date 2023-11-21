@@ -194,7 +194,7 @@ def write_job_run_result_to_db(
 def enriched_with_metadata(
     spec: Spec, df: pandas.DataFrame, job_id: str = None
 ) -> Tuple[pandas.DataFrame, JobResult]:
-    start_date_time = datetime.datetime.now()
+    start_date_time = datetime.now()
     job_res = JobResult(job_id=job_id, start_date_time=start_date_time)
     if df.empty:
         return df, job_res
@@ -207,7 +207,7 @@ def enriched_with_metadata(
         df_out["data"] = df.to_dict("records")
 
         job_res.task_name = "Enrich dataframe. Format: meta+json"
-        job_res.end_date_time = datetime.datetime.now()
+        job_res.end_date_time = datetime.now()
         job_res.memory = tracemalloc.get_traced_memory()
         job_res.result = "DONE"
 
@@ -221,7 +221,7 @@ def enriched_with_metadata(
 
         job_res.task_name = "Enrich dataframe. Format: meta"
         job_res.rows = df_out.size
-        job_res.end_date_time = datetime.datetime.now()
+        job_res.end_date_time = datetime.now()
         job_res.memory = tracemalloc.get_traced_memory()
         job_res.result = "DONE"
 
@@ -252,14 +252,14 @@ def enriched_with_metadata(
             df_out["INTERFACE"] = spec.interface
             df_out["LOADER"] = get_pacage_name() + "-" + get_package_version()
             df_out["JOB_ID"] = job_id
-            df_out["LOAD_TIME"] = datetime.datetime.now().timestamp()
+            df_out["LOAD_TIME"] = datetime.now().timestamp()
             df_out["HASH"] = [
                 hashlib.md5(data.encode("utf-8")).hexdigest() for data in df_out["RAW"]
             ]
 
             job_res.task_name = "Enrich dataframe. Format: log"
             job_res.rows = df_out.size
-            job_res.end_date_time = datetime.datetime.now()
+            job_res.end_date_time = datetime.now()
             job_res.memory = tracemalloc.get_traced_memory()
             job_res.result = "DONE"
 
@@ -272,7 +272,7 @@ def enriched_with_metadata(
 
     else:
         job_res.task_name = "Process: skip"
-        job_res.end_date_time = datetime.datetime.now()
+        job_res.end_date_time = datetime.now()
         job_res.memory = tracemalloc.get_traced_memory()
         job_res.result = "DONE"
         return df, job_res
