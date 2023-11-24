@@ -237,7 +237,7 @@ class JobRunner:
         self.DBT_DIR = os.getenv("DBT_DIR", "./dbt")
         self.DBT_PROFILES_DIR = os.getenv("DBT_PROFILES_DIR", "./dbt")
         self.DBT_PROJECT_DIR = os.getenv("DBT_PROJECT_DIR", "./dbt")
-        self.DBT_TARGET = <
+        self.DBT_TARGET = target
         self.GCS_BUCKET = os.getenv("INBOUND_GCS_BUCKET", None)
         self.TEMP_DIR = tempfile.mkdtemp()
 
@@ -306,7 +306,7 @@ class JobRunner:
         try:
             dbt = dbtRunner()
             args = [
-                "build",
+                "run",
                 "--project-dir",
                 self.DBT_PROJECT_DIR,
                 "--profiles-dir",
