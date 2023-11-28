@@ -43,7 +43,7 @@ class DbtRunner:
                 return JobResult(
                     result="FAILED", time_start=time_start, time_end=time_end
                 )
-            return JobResult("DONE", time_start=time_start, time_end=time_end)
+            return JobResult(result="DONE", time_start=time_start, time_end=time_end)
         except Exception as e:
             LOGGER.info(f"Error running dbt source freshness. {e}")
             return JobResult(result="FAILED")
