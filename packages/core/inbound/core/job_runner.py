@@ -30,6 +30,7 @@ class Actions(Enum):
     TRANSFORM = 2
     TEST = 3
     METADATA = 4
+    FRESHNESS = 5
 
 
 class JobRunner:
@@ -40,6 +41,7 @@ class JobRunner:
         job_file_name: str | None = None,
         actions: List[Actions] = [
             Actions.INGEST,
+            Actions.FRESHNESS,
             Actions.TRANSFORM,
             Actions.TEST,
             Actions.METADATA,
@@ -204,6 +206,15 @@ class JobRunner:
             LOGGER.info(res)
             if request and res.result == "DONE":
                 request.app.state.status[self.job_id] = "INGEST DONE"
+            if res.result != "DONE":
+                result = False
+
+        if Actions.FRESHNESS in self.actions:
+            res = self.dbtRunner.freshness()
+            results["freshness"] = res.to_json()
+            LOGGER.info(res)
+            if request and res.result == "DONE":
+                request.app.state.status[self.job_id] = "FRESHNESS DONE"
             if res.result != "DONE":
                 result = False
 

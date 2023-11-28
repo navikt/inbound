@@ -33,6 +33,21 @@ class DbtRunner:
         res: dbtRunnerResult = dbt.invoke(args)
         return res
 
+    def freshness(self) -> JobResult:
+        LOGGER.info("Running dbt source freshness")
+        time_start = datetime.now(timezone.utc)
+        try:
+            res = self.run_dbt_method(["source", "freshness"])
+            time_end = datetime.now(timezone.utc)
+            if not res.success:
+                return JobResult(
+                    result="FAILED", time_start=time_start, time_end=time_end
+                )
+            return JobResult("DONE", time_start=time_start, time_end=time_end)
+        except Exception as e:
+            LOGGER.info(f"Error running dbt source freshness. {e}")
+            return JobResult(result="FAILED")
+
     def transform(self) -> JobResult:
         LOGGER.info("Running dbt transformations")
         time_start = datetime.now(timezone.utc)
