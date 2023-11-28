@@ -37,7 +37,7 @@ class DbtRunner:
         LOGGER.info("Running dbt transformations")
         time_start = datetime.now(timezone.utc)
         try:
-            self.run_dbt_method(["run"])
+            self.run_dbt_method(["build"])
             time_end = datetime.now(timezone.utc)
             return JobResult(result="DONE", time_start=time_start, time_end=time_end)
         except Exception as e:
