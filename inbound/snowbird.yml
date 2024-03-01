@@ -1,0 +1,34 @@
+databases:
+  - inbound_integration_test:
+      shared: no
+      owner: sysadmin
+      schemas:
+        - test
+
+roles:
+  - inbound_integration_test:
+      warehouses:
+        - inbound_integration_test
+      privileges:
+        databases:
+          read:
+            - inbound_integration_test
+        schemas:
+          read:
+            - inbound_integration_test.test
+          write:
+            - inbound_integration_test.test
+        tables:
+          read:
+            - inbound_integration_test.test.*
+          write:
+            - inbound_integration_test.test.*
+      owns:
+        tables:
+          - inbound_integration_test.test.*
+      owner: useradmin
+
+warehouses:
+  - inbound_integration_test:
+      size: x-small
+      owner: sysadmin
