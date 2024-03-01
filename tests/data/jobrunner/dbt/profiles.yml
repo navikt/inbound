@@ -1,9 +1,0 @@
-config:
-  send_anonymous_usage_stats: False
-
-inbound_test:
-  target: dev
-  outputs:
-    dev:
-      type: duckdb
-      path: "{{ env_var('DATABASE_FILE') }}"
