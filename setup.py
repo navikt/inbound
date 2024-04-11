@@ -27,7 +27,7 @@ setup(
         "pyodbc",
         "jinja2",
         "python-dotenv>=1.0.0",
-        "dataclass",
+        "dataclasses",
     ],
     python_requires=">=3.11",
 )
