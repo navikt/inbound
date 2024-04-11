@@ -1,7 +1,0 @@
-[paths]
-source= packages/
-
-[report]
-exclude_lines = 
-    pragma: not covered
-    Protocol

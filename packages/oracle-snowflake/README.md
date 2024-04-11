@@ -1,1 +1,0 @@
-# Inbound Oracle-Snowflake connection

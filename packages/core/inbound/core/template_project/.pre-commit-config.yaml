@@ -1,7 +1,0 @@
-- repo: local
-  hooks:
-    - id: stripout
-      name: stripout notebooks
-      language: python
-      entry: ./.venv/bin/python -m scripts.stripout
-      pass_filenames: false
