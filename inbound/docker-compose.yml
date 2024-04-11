@@ -1,0 +1,25 @@
+version: "3.1"
+services:
+  oracle:
+    image: gvenzl/oracle-free:23.3-slim-faststart
+    restart: always
+    container_name: oracle
+#    volumes:
+#      - ./sql:/docker-entrypoint-initdb.d/startup
+    environment:
+      ORACLE_PASSWORD: example
+    ports:
+      - "1521:1521"
+      - "5500:5500"
+    platform: linux/amd64
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: unless-stopped
+    container_name: mssql
+#    volumes:
+#      - ./sql:/docker-entrypoint-initdb.d/startup
+    environment:
+      ACCEPT_EULA: Y
+      MSSQL_SA_PASSWORD: Ex4mple!
+    ports:
+      - "1433:1433"
