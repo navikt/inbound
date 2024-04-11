@@ -1,10 +1,9 @@
+import secrets
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from multiprocessing import Manager, Process, Queue
 from typing import Callable, Optional, Type
-
-from api import secrets
 
 
 @dataclass
