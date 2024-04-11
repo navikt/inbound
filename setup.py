@@ -22,6 +22,12 @@ setup(
         "Programming Language :: Python :: 3.11",
         "Operating System :: OS Independent",
     ],
-    install_requires=["oracledb>=2.0.0", "pyodbc", "jinja2", "python-dotenv>=1.0.0"],
+    install_requires=[
+        "oracledb>=2.0.0",
+        "pyodbc",
+        "jinja2",
+        "python-dotenv>=1.0.0",
+        "dataclass",
+    ],
     python_requires=">=3.11",
 )
