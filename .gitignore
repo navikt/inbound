@@ -1,0 +1,11 @@
+inbound/inbound.egg-info
+inbound/__pycache__
+
+inbound/core/__pycache__/
+inbound/sdk/__pycache__/
+inbound/sinks/__pycache__/
+inbound/taps/__pycache__/
+inbound/tests/integration/__pycache__/
+inbound/tests/unit/__pycache__/
+
+.DS_Store
