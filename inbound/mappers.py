@@ -1,5 +1,5 @@
-from inbound.core.models import Description
-from inbound.sdk.mapper import Mapper
+from .core.models import Description
+from .sdk.mapper import Mapper
 
 
 class OraToSnowDescriptionMapper(Mapper):

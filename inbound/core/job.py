@@ -2,10 +2,10 @@ import dataclasses
 import json
 from datetime import datetime
 
+from ..sdk.mapper import Mapper
+from ..sdk.sink import Sink
+from ..sdk.tap import Tap
 from .models import Description, Metadata
-from inbound.sdk.mapper import Mapper
-from inbound.sdk.sink import Sink
-from inbound.sdk.tap import Tap
 
 
 class Job:
