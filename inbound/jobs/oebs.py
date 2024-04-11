@@ -4,11 +4,11 @@ from datetime import datetime
 import oracledb
 import snowflake.connector
 
-from inbound.core.job import Job
-from inbound.core.models import Metadata
-from inbound.mappers import OraToSnowDescriptionMapper
-from inbound.sinks.snowflake import SnowHandler, SnowSink, snow_generate_highwatermark
-from inbound.taps.oracle import OraTap
+from ..core.job import Job
+from ..core.models import Metadata
+from ..mappers import OraToSnowDescriptionMapper
+from ..sinks.snowflake import SnowHandler, SnowSink, snow_generate_highwatermark
+from ..taps.oracle import OraTap
 
 oracledb.init_oracle_client()
 oracledb.defaults.fetch_decimals = True

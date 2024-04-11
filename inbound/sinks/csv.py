@@ -1,7 +1,7 @@
 from typing import Any, Generator
 
-from inbound.core.models import Description
-from inbound.sdk.sink import Sink
+from ..core.models import Description
+from ..sdk.sink import Sink
 
 
 class CsvSink(Sink):

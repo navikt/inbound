@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Generator
 
-from inbound.core.models import Description
+from ..core.models import Description
 
 
 class Sink(ABC):

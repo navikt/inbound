@@ -2,9 +2,9 @@ from typing import Any, Generator
 
 from oracledb import Connection
 
-from inbound.core.models import Description
-from inbound.sdk.tap import Tap
-from inbound.sdk.utils import get_query_list
+from ..core.models import Description
+from ..sdk.tap import Tap
+from ..sdk.utils import get_query_list
 
 #
 # select tbl.*,

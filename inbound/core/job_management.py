@@ -1,9 +1,10 @@
-import secrets
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from multiprocessing import Manager, Process, Queue
 from typing import Callable, Optional, Type
+
+from .secrets import *
 
 
 @dataclass
@@ -21,7 +22,7 @@ class Job:
     job: Callable[[], Optional[dict]]
 
     def run(self, job_statuses: dict[str, JobStatus]):
-        secrets.set_env_variables_from_secrets()
+        set_env_variables_from_secrets()
         try:
             job_result = self.job()
             status = "done"

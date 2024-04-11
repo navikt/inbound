@@ -2,7 +2,7 @@ import dataclasses
 import json
 from datetime import datetime
 
-from inbound.core.models import Description, Metadata
+from .models import Description, Metadata
 from inbound.sdk.mapper import Mapper
 from inbound.sdk.sink import Sink
 from inbound.sdk.tap import Tap

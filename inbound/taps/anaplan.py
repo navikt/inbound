@@ -7,8 +7,8 @@ from typing import Any, Generator
 
 import requests
 
-from inbound.core.models import Description
-from inbound.sdk.tap import Tap
+from ..core.models import Description
+from ..sdk.tap import Tap
 
 
 class AnaplanTap(Tap):

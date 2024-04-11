@@ -3,11 +3,11 @@ from datetime import datetime
 
 import snowflake.connector
 
-from inbound.core.job import Job
-from inbound.core.models import Metadata
-from inbound.mappers import AnaplanToSnowDescriptionMapper
-from inbound.sinks.snowflake import SnowHandler, SnowSink
-from inbound.taps.anaplan import AnaplanTap
+from ..core.job import Job
+from ..core.models import Metadata
+from ..mappers import AnaplanToSnowDescriptionMapper
+from ..sinks.snowflake import SnowHandler, SnowSink
+from ..taps.anaplan import AnaplanTap
 
 
 def ingest_budget(job_id: str):

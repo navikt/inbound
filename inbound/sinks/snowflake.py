@@ -8,8 +8,8 @@ from typing import Any, Generator
 from jinja2 import Environment
 from snowflake.connector import DictCursor, SnowflakeConnection
 
-from inbound.core.models import Description
-from inbound.sdk.sink import Sink
+from ..core.models import Description
+from ..sdk.sink import Sink
 
 
 class SnowHandler:
