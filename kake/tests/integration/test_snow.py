@@ -3,8 +3,8 @@ from unittest import TestCase
 
 import snowflake.connector
 
-from inbound.core.models import Description
-from inbound.sinks.snowflake import SnowHandler, SnowSink, snow_generate_highwatermark
+from kake.core.models import Description
+from kake.sinks.snowflake import SnowHandler, SnowSink, snow_generate_highwatermark
 
 con_config = {
     "user": os.environ["DBT_USR"],

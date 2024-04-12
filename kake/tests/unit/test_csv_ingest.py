@@ -3,8 +3,8 @@ import datetime
 import io
 from unittest import TestCase
 
-from inbound.core.models import Description
-from inbound.sinks.csv import CsvSink
+from kake.core.models import Description
+from kake.sinks.csv import CsvSink
 
 
 class TestCsvIngest(TestCase):

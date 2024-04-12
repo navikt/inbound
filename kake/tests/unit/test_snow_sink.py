@@ -2,8 +2,8 @@ from datetime import datetime
 from io import StringIO
 from unittest import TestCase
 
-from inbound.core.models import Description
-from inbound.sinks.snowflake import SnowSink
+from kake.core.models import Description
+from kake.sinks.snowflake import SnowSink
 
 
 class MockSnowHandler:

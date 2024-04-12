@@ -4,10 +4,10 @@ from unittest import TestCase
 import oracledb
 import snowflake.connector
 
-from inbound.core.job import Job
-from inbound.mappers import OraToSnowDescriptionMapper
-from inbound.sinks.snowflake import SnowHandler, SnowSink
-from inbound.taps.oracle import OraTap
+from kake.core.job import Job
+from kake.mappers import OraToSnowDescriptionMapper
+from kake.sinks.snowflake import SnowHandler, SnowSink
+from kake.taps.oracle import OraTap
 
 
 class TestOraToSnowIntegration(TestCase):

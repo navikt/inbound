@@ -4,11 +4,11 @@ from unittest import TestCase
 import pyodbc
 import snowflake.connector
 
-from inbound.core.job import Job
-from inbound.core.models import Description
-from inbound.mappers import MSSQLToSnowDescriptionMapper
-from inbound.sinks.snowflake import SnowHandler, SnowSink
-from inbound.taps.mssql import MSSQLTap
+from kake.core.job import Job
+from kake.core.models import Description
+from kake.mappers import MSSQLToSnowDescriptionMapper
+from kake.sinks.snowflake import SnowHandler, SnowSink
+from kake.taps.mssql import MSSQLTap
 
 # MSSQL test database
 SERVER = "127.0.0.1, 1433"

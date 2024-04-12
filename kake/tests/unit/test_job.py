@@ -2,10 +2,10 @@ from datetime import datetime
 from typing import Any, Generator
 from unittest import TestCase
 
-from inbound.core.job import Job
-from inbound.core.models import Description, Metadata
-from inbound.sdk.sink import Sink
-from inbound.sdk.tap import Tap
+from kake.core.job import Job
+from kake.core.models import Description, Metadata
+from kake.sdk.sink import Sink
+from kake.sdk.tap import Tap
 
 
 class MockTap(Tap):

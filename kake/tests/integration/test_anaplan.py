@@ -6,12 +6,12 @@ from unittest import TestCase
 
 import snowflake.connector
 
-from inbound.core.job import Job
-from inbound.core.models import Description, Metadata
-from inbound.mappers import AnaplanToSnowDescriptionMapper
-from inbound.sinks.csv import CsvSink
-from inbound.sinks.snowflake import SnowHandler, SnowSink
-from inbound.taps.anaplan import AnaplanTap
+from kake.core.job import Job
+from kake.core.models import Description, Metadata
+from kake.mappers import AnaplanToSnowDescriptionMapper
+from kake.sinks.csv import CsvSink
+from kake.sinks.snowflake import SnowHandler, SnowSink
+from kake.taps.anaplan import AnaplanTap
 
 workspaceID = "8a868cd985f53e7701860542f59e276e"
 modelID = "7C773072370243ED9FDD224F0A3B6E53"

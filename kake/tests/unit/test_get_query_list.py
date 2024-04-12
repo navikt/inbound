@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from inbound.sdk.utils import get_query_list
+from kake.sdk.utils import get_query_list
 
 
 class TestGetQueryList(TestCase):

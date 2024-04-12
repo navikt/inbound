@@ -2,7 +2,7 @@ from multiprocessing import Manager
 from time import sleep
 from unittest import TestCase
 
-from inbound.core.job_management import JobClerk, WorkerManager
+from kake.core.job_management import JobClerk, WorkerManager
 
 
 def dummy_job():

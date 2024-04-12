@@ -2,8 +2,8 @@ from unittest import TestCase
 
 import oracledb
 
-from inbound.core.models import Description
-from inbound.taps.oracle import OraTap
+from kake.core.models import Description
+from kake.taps.oracle import OraTap
 
 con_config = {
     "dsn": "localhost:1521/FREEPDB1",

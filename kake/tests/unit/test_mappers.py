@@ -1,7 +1,7 @@
 from unittest import TestCase
 
-from inbound.core.models import Description
-from inbound.mappers import AnaplanToSnowDescriptionMapper, OraToSnowDescriptionMapper
+from kake.core.models import Description
+from kake.mappers import AnaplanToSnowDescriptionMapper, OraToSnowDescriptionMapper
 
 
 class TestOraMapper(TestCase):
