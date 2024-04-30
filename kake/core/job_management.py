@@ -45,7 +45,7 @@ class WorkerManager(Process):
     def run(self):
         while True:
             worker, job = self._assign_work()
-            self._wait_for_worker_to_finnish(worker, job)
+            self._wait_for_worker_to_finish(worker, job)
 
     def _assign_work(self):
         job: Job = self.job_queue.get()
@@ -56,7 +56,7 @@ class WorkerManager(Process):
         self._update_job_status(job, "running")
         return worker_process, job
 
-    def _wait_for_worker_to_finnish(self, worker: Process, job: Job):
+    def _wait_for_worker_to_finish(self, worker: Process, job: Job):
         worker.join()
         if worker.exitcode != 0:
             self._update_job_status(job, "error")

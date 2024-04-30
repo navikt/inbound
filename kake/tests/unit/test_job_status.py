@@ -24,7 +24,7 @@ def failing_job():
 class RunOnceWorkerManager(WorkerManager):
     def run(self):
         worker, job = self._assign_work()
-        self._wait_for_worker_to_finnish(worker, job)
+        self._wait_for_worker_to_finish(worker, job)
 
 
 class NotWaitForWorkerManager(WorkerManager):
@@ -85,7 +85,7 @@ class TestJobStatus(TestCase):
         new_status = clerk.get_job_status(job_status.job_id)
         assert job_status.created_at == new_status.created_at
 
-    def test_job_status_job_result_is_updated_when_job_is_finnished(self):
+    def test_job_status_job_result_is_updated_when_job_is_finished(self):
         clerk = JobClerk(worker_manager=RunOnceWorkerManager)
         job_status = clerk.run_job(dummy_job_result)
         clerk.worker_manager_process.join()
