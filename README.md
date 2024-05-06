@@ -1,7 +1,7 @@
 # inbound
 En pakke for å laste dataprodukter fra ulike kildesystemer til Snowflake. 
 
-# Installeringssteg
+# Installering
 
 ```shell
 pip install inbound 
