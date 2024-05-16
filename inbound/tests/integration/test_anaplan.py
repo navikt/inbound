@@ -72,7 +72,8 @@ class TestAnaplan(TestCase):
             "authenticator": "externalbrowser",
         }
 
-        snow_db = "dev_regnskap_raw"
+        snow_db = "regnskap_raw__preprod"
+        # snow_db = os.environ["REGNSKAP_RAW_DB"]
 
         username = os.environ["ANAPLAN_USR"]
         password = os.environ["ANAPLAN_PWD"]

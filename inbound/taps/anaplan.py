@@ -11,6 +11,10 @@ from ..core.models import Description
 from ..sdk.tap import Tap
 
 
+class AnaplanAuthException(Exception):
+    pass
+
+
 class AnaplanTap(Tap):
 
     def __init__(self, workspaceID, modelID, exportID, fileID, username, password):
@@ -23,14 +27,16 @@ class AnaplanTap(Tap):
         self.base_url = (
             f"https://api.anaplan.com/2/0/workspaces/{workspaceID}/models/{modelID}"
         )
+        self.auth_url = "https://auth.anaplan.com/token/authenticate"
 
     # TODO: Må refaktoreres
     def column_descriptions(self) -> list[Description]:
         # TODO: Isoler IO
-        import_headers = self._get_header()
+        auth_response = self._get_auth_response()
+        import_header = self._get_header(auth_response=auth_response)
         url = f"https://api.anaplan.com/2/0/workspaces/{self.workspaceID}/models/{self.modelID}/exports/{self.exportID}"
         respons = requests.get(
-            url, headers=import_headers, data=json.dumps({"localeName": "en_US"})
+            url, headers=import_header, data=json.dumps({"localeName": "en_US"})
         )
         # TODO: Dette bør være responsen fra isolert IO
         export_respons = respons.json()
@@ -50,12 +56,13 @@ class AnaplanTap(Tap):
     # TODO: Må refaktoreres
     def data_generator(self) -> Generator[list[tuple], Any, None]:
         # TODO: Isoler IO
-        header = self._get_header()
+        auth_response = self._get_auth_response()
+        header = self._get_header(auth_response=auth_response)
 
         taskID = self._import_data(
             header, self.workspaceID, self.modelID, self.exportID
         )
-        task_status = self._sjekk_status(
+        self._check_status(
             header, self.workspaceID, self.modelID, self.exportID, taskID
         )
 
@@ -88,37 +95,39 @@ class AnaplanTap(Tap):
         yield data
 
     # TODO: Må refaktoreres
-    def _get_header(self):
+    def _get_auth_response(self):
         # TODO: Bør isoleres som en input IO til anaplan
-        token_url = "https://auth.anaplan.com/token/authenticate"
         user = "Basic " + str(
             base64.b64encode(
                 (f"{self.username}:{self.password}").encode("utf-8")
             ).decode("utf-8")
         )
-        token_headers = {"Authorization": user, "Content-Type": "application/json"}
+        auth_header = {"Authorization": user, "Content-Type": "application/json"}
 
         # TODO: Isoler IO
-        token = requests.post(
-            url=token_url,
-            headers=token_headers,
+
+        kake = requests.post(
+            url=self.auth_url,
+            headers=auth_header,
             data=json.dumps({"localeName": "en_US"}),
         )
-        # TODO: Response fra isolert IO
-        token_value = token.json()["tokenInfo"]["tokenValue"]
+        print(kake)
+        return kake
 
-        # TODO: Bør isoleres som en response
+    def _get_header(self, auth_response: requests.Response):
+        if not auth_response.ok:
+            raise AnaplanAuthException(
+                f"Authentication against Anaplan failed: {auth_response.text}"
+            )
+
+        token_value = auth_response.json()["tokenInfo"]["tokenValue"]
+
         import_headers = {
             "Authorization": f"AnaplanAuthToken {token_value}",
             "Content-Type": "application/json",
         }
 
         return import_headers
-
-    # IO mot anaplan
-    def get_auth_token(self, token_url, token_header) -> str: ...
-
-    def auth_header(self, auth_token) -> dict: ...
 
     def _import_data(self, header, workspaceID, modelID, exportID):
 
@@ -134,7 +143,7 @@ class AnaplanTap(Tap):
 
         return taskID
 
-    def _sjekk_status(self, header, workspaceID, modelID, exportID, taskID):
+    def _check_status(self, header, workspaceID, modelID, exportID, taskID):
 
         import_headers = header
 
@@ -152,8 +161,6 @@ class AnaplanTap(Tap):
             if task_status == "COMPLETE":
                 break
             time.sleep(1)
-
-        return task_status
 
     # IO mot anaplan. Ok
     def _get_file_chunks(self, header, workspaceID, modelID, fileID):
