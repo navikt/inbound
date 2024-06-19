@@ -23,10 +23,16 @@ setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        "oracledb>=2.0.0",
-        "pyodbc",
         "jinja2",
         "python-dotenv>=1.0.0",
     ],
+    extras_require={
+        "oracle": [
+            "oracledb>=2.0.0",
+        ],
+        "mssql": [
+            "pyodbc",
+        ],
+    },
     python_requires=">=3.10",
 )
