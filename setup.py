@@ -36,6 +36,11 @@ setup(
         "snowflake": [
             "snowflake-connector-python>=3.0.0",
         ],
+        "dev": [
+            "black",
+            "isort",
+            "pytest",
+        ],
     },
     python_requires=">=3.10",
 )
