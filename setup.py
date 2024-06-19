@@ -33,6 +33,9 @@ setup(
         "mssql": [
             "pyodbc",
         ],
+        "snowflake": [
+            "snowflake-connector-python>=3.0.0",
+        ],
     },
     python_requires=">=3.10",
 )

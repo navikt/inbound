@@ -10,7 +10,7 @@ install:
 	rm -rf .venv
 	python3.11 -m venv .venv && \
 		${PY} pip install --upgrade pip && \
-		${PY} pip install .[oracle,mssql]
+		${PY} pip install .[oracle,mssql,snowflake]
 
 start-colima:
 	colima start --arch x86_64 --memory 6
