@@ -3,6 +3,7 @@ from typing import Any, Generator
 from oracledb import Connection
 
 from ..core.models import Description
+from ..sdk.highwatermark import Highwatermark
 from ..sdk.tap import Tap
 from ..sdk.utils import get_query_list
 
@@ -25,17 +26,14 @@ from ..sdk.utils import get_query_list
 
 class OraTap(Tap):
     def __init__(
-        self, connection: Connection, query: str, highwatermarks: list[dict] = [{}]
+        self, connection: Connection, query: str, highwatermark: Highwatermark = None
     ):
-        if len(highwatermarks) == 0:
-            raise ValueError("highwatermarks should not be an empty list")
         self.connection = connection
-        self.queries = get_query_list(
-            query_template=query, highwatermarks=highwatermarks
-        )
+        self.query = query
+        self.highwatermark = highwatermark
 
     def column_descriptions(self) -> list[Description]:
-        query = self.queries[0]
+        query = self.query
         q_lowercase_where = query.replace("WHERE", "where")
         query_split = q_lowercase_where.split(sep="where", maxsplit=1)
         query_select = query_split[0]
@@ -82,10 +80,14 @@ class OraTap(Tap):
         return column_descriptions
 
     def data_generator(self) -> Generator[list[tuple], Any, None]:
+        queries = [self.query]
+        if self.highwatermark is not None:
+            highwatermark_list = self.highwatermark.generate_query_list()
+            queries = get_query_list(self.query, highwatermark_list)
         # TODO: Isoler IO
         with self.connection.cursor() as cur:
 
-            for query in self.queries:
+            for query in queries:
                 # TODO: Isoler IO
                 cur.execute(query)
 

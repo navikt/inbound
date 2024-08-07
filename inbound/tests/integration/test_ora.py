@@ -3,6 +3,7 @@ from unittest import TestCase
 import oracledb
 
 from inbound.core.models import Description
+from inbound.sdk.highwatermark import Highwatermark
 from inbound.taps.oracle import OraTap
 
 con_config = {
@@ -10,6 +11,14 @@ con_config = {
     "user": "system",
     "password": "example",
 }
+
+
+class DummyHighWatermark(Highwatermark):
+    def __init__(self, highwatermarks):
+        self.highwatermarks = highwatermarks
+
+    def generate_query_list(self):
+        return self.highwatermarks
 
 
 class TestOraIntegration(TestCase):
@@ -77,8 +86,24 @@ class TestOraIntegration(TestCase):
             ]
             assert expected == result
 
+    def test_ora_column_description_with_empty_highwatermark(self):
+        query = "select sum(cast(1 as number(38,5))) as foo from dual where 1=1 and {{ highwatermark['B'] }} group by 1"
+        with oracledb.connect(**con_config) as connection:
+            ora_tap = OraTap(connection=connection, query=query)
+            result = ora_tap.column_descriptions()
+            expected = [
+                Description(
+                    name="FOO",
+                    type="<DbType DB_TYPE_NUMBER>",
+                    precision=None,
+                    scale=None,
+                    nullable=True,
+                )
+            ]
+            assert expected == result
+
     def test_highwatermarks(self):
-        highwatermarks = [{"A": 1}]
+        highwatermarks = DummyHighWatermark(highwatermarks=[{"A": 1}])
         query = """
             select *
             from (
@@ -90,14 +115,15 @@ class TestOraIntegration(TestCase):
         """
         with oracledb.connect(**con_config) as connection:
             ora_tap = OraTap(
-                connection=connection, query=query, highwatermarks=highwatermarks
+                connection=connection, query=query, highwatermark=highwatermarks
             )
             result = [rows for rows in ora_tap.data_generator()]
             expected = [[(2,)]]
             assert result == expected
 
-    def test_empty_highwatermarks_should_raise_exception(self):
-        highwatermarks = []
+    def test_empty_highwatermarks_should_not_yield(self):
+
+        highwatermarks = DummyHighWatermark(highwatermarks=[])
         query = """
             select *
             from (
@@ -108,10 +134,9 @@ class TestOraIntegration(TestCase):
             where a > {{ highwatermark['A'] }}
         """
         with oracledb.connect(**con_config) as connection:
-            self.assertRaises(
-                ValueError,
-                OraTap,
-                connection=connection,
-                query=query,
-                highwatermarks=highwatermarks,
+            ora_tap = OraTap(
+                connection=connection, query=query, highwatermark=highwatermarks
             )
+            result = [rows for rows in ora_tap.data_generator()]
+            expected = []
+            assert result == expected
