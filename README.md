@@ -22,5 +22,5 @@ For å release en ny versjon må en gjøre følgende:
 * Oppdatere `version` i [setup.py](setup.py)
 * Opprett `<major>.<minor>` tag. Eks: `git tag v0.2`
 * Opprett `<major>.<minor>.<patch>` tag. Eks: `git tag v0.2.0`
-* Push tags til github med: `git push origin v0.2 v0.2.0`
+* Push tags til github med: `git push -f origin v0.2 v0.2.0`
 * Opprett ny release på [github](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) og velg den nye `<major>.<minor>.<patch>` taggen.
