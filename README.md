@@ -24,3 +24,19 @@ For å release en ny versjon må en gjøre følgende:
 * Opprett `<major>.<minor>.<patch>` tag. Eks: `git tag v0.2.0`
 * Push tags til github med: `git push -f origin v0.2 v0.2.0`
 * Opprett ny release på [github](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) og velg den nye `<major>.<minor>.<patch>` taggen.
+
+## Kjøring av integrasjonstester
+
+For å kunne kjøre integrasjonstestene må testdatabasene startes opp først. Dette gjøres med `docker compose` når en står i `inbound`-mappen
+
+Starte testdatabaser
+
+```shell
+docker compose up
+```
+
+"Rive" testdatabase
+
+```shell
+docker compose down
+```
