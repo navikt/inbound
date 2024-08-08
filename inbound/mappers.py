@@ -10,7 +10,7 @@ class OraToSnowDescriptionMapper(Mapper):
         type_mapping = {
             "<DbType DB_TYPE_NUMBER>": "number",
             "<DbType DB_TYPE_VARCHAR>": "varchar",
-            "<DbType DB_TYPE_DATE>": "date",
+            "<DbType DB_TYPE_DATE>": "datetime",  # date i oracle kan også inneholde tidspunkt
         }
         return Description(
             name=column.name,
