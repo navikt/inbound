@@ -19,7 +19,7 @@ Vi bruker [GitHub Release](https://docs.github.com/en/repositories/releasing-pro
 
 For å release en ny versjon må en gjøre følgende:
 * Merge koden til main
-* Oppdatere `version` i [setup.py](setup.py) og [models.py](inbound/core/models.py)
+* Oppdatere `version` i [setup.py](setup.py)
 * Opprett `<major>.<minor>` tag. Eks: `git tag v0.2`
 * Opprett `<major>.<minor>.<patch>` tag. Eks: `git tag v0.2.0`
 * Push tags til github med: `git push -f origin v0.2 v0.2.0`
