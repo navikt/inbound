@@ -17,7 +17,7 @@ class Metadata:
     source_env: str
     run_id: str
     job_name: str
-    inbound_version: str = "0.1.0"
+    inbound_version: str = "0.1.1"
 
     def get_description(self):
         return [
