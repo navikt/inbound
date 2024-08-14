@@ -20,10 +20,13 @@ Vi bruker [GitHub Release](https://docs.github.com/en/repositories/releasing-pro
 For å release en ny versjon må en gjøre følgende:
 * Merge koden til main
 * Oppdatere `version` i [setup.py](setup.py)
-* Opprett `<major>.<minor>` tag. Eks: `git tag v0.2`
-* Opprett `<major>.<minor>.<patch>` tag. Eks: `git tag v0.2.0`
+* Opprett/oppdater `<major>.<minor>` tag. Eks: `git tag -f v0.2`
+* Opprett `<major>.<minor>.<patch>` tag. Eks: `git tag v0.2.0` (tagen skal ikke eksistere fra før)
 * Push tags til github med: `git push -f origin v0.2 v0.2.0`
-* Opprett ny release på [github](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) og velg den nye `<major>.<minor>.<patch>` taggen.
+* Opprett ny release på [github](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
+    * Steg 1: Velg den nye `<major>.<minor>.<patch>` taggen.
+    * Steg 2: Trykk Generate release notes for å få utfylt relevant informasjon 
+    * Steg 3: Trykk Publish release.
 
 ## Kjøring av integrasjonstester
 
