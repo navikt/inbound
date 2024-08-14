@@ -1,5 +1,6 @@
 import datetime
 from dataclasses import dataclass
+from importlib.metadata import version
 
 
 @dataclass
@@ -17,7 +18,7 @@ class Metadata:
     source_env: str
     run_id: str
     job_name: str
-    inbound_version: str = "0.1.2"
+    inbound_version: str = version("inbound")
 
     def get_description(self):
         return [
