@@ -18,12 +18,7 @@ tap = MainManagerTap(table="", username="", password="", data_supplier=DummySupp
 
 class TestMainManager(TestCase):
     def test_mainmanager_data_generator_supplies_batches_of_data(self):
-
-        result = None
-        for item in tap.data_generator():
-            result = item
-            break
-
+        result = next(tap.data_generator())
         expected = [('{"test": "wohoo"}',), ('{"test2": "jippi"}',)]
 
         assert result == expected

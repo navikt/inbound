@@ -22,7 +22,8 @@ class DummyHighWatermark(Highwatermark):
 
 
 class TestOraIntegration(TestCase):
-    def test_ora_generator(self):
+
+    def test_ora_generator_yields_list_of_tuples(self):
         with oracledb.connect(**con_config) as connection:
             query = """
             select *
@@ -33,8 +34,9 @@ class TestOraIntegration(TestCase):
                 )
             """
             ora_tap = OraTap(connection=connection, query=query)
-            for rows in ora_tap.data_generator():
-                assert len(rows) == 2
+            result = next(ora_tap.data_generator())
+            expected = [(1,), (2,)]
+            assert result == expected
 
     def test_ora_column_description(self):
         query = "select cast(1 as number(38,5)) as foo from dual"
