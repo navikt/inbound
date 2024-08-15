@@ -1,14 +1,7 @@
 import os
 from unittest import TestCase
 
-from inbound.core.models import Description
 from inbound.taps.mainmanager import MainManagerError, MainManagerTap
-
-tap = MainManagerTap(
-    table="dim_bygg_01",
-    username=os.environ["MAINMANAGER_API_USERNAME"],
-    password=os.environ["MAINMANAGER_API_PASSWORD"],
-)
 
 
 class TestMainManager(TestCase):
