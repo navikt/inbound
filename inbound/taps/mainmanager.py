@@ -7,6 +7,8 @@ import requests
 from ..core.models import Description
 from ..sdk.tap import Tap
 
+class MainManagerError(Exception):
+    pass
 
 class MainManagerDataSupplier:
     def __init__(
@@ -28,6 +30,9 @@ class MainManagerDataSupplier:
 
         response = requests.get(urljoin(self.base_url, self.endpoint), headers=headers)
 
+        payload = response.json()
+        if payload['Success'] is False:
+            raise MainManagerError(payload['Message'])
         return response.json()
 
     # Autentisering mot MainManager-APIet
@@ -40,11 +45,10 @@ class MainManagerDataSupplier:
 
         response = requests.post(urljoin(self.base_url, "/restapi/token"), data=data)
 
-        if response.status_code == 200:
-            return response.json().get("access_token")
-        else:
-            print(f"Token request failed: {response.status_code}, {response.text}")
-            return None
+        payload = response.json()
+        if response.status_code != 200:
+            raise MainManagerError(payload['error_description'])
+        return response.json().get("access_token")
 
 
 class MainManagerTap(Tap):
@@ -80,4 +84,4 @@ class MainManagerTap(Tap):
 
         table_content = json.loads(eiendomsdata.get("DataTable"))
 
-        return [[(json.dumps(item),) for item in table_content["table"]]]
+        yield [(json.dumps(item),) for item in table_content["table"]]
