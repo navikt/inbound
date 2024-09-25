@@ -67,15 +67,16 @@ class SnowSink(Sink):
     def __init__(
         self,
         table: str,
-        append: bool,
+        transient: bool,
         connection_handler: SnowHandler,
         tmp_file_max_size: int = 1024 * 1024 * 1024 * 4,  # 4GB
         csv_writer=None,
         ddl: str = None,
         file_handler: FileHandler = None,
+        transient_table_postfix: str = "__transient",
     ):
         self.table = table
-        self.append = append
+        self.transient = transient
         self.tmp_file_max_size = tmp_file_max_size
         self.csv_writer = csv_writer
         self.ddl = ddl
@@ -97,7 +98,7 @@ class SnowSink(Sink):
                 schema=snow_schema,
                 table=snow_table,
                 column_descriptions=column_description,
-                append=self.append,
+                transient=self.transient,
             )
         if self.csv_writer is None:
             self.csv_writer = partial(csv.writer)
@@ -159,11 +160,10 @@ class SnowSink(Sink):
         database: str,
         schema: str,
         column_descriptions: list[Description],
-        append: bool,
+        transient: bool,
     ) -> str:
-        # TODO: Endre slik at "not append"-tabeller er transient
         ddl_jinja = """
-                create {%- if not append %} or replace table {% else %} table if not exists {%- endif %} {{ database -}}.{{- schema -}}.{{- table -}} (
+                create {%- if transient %} or replace transient table {% else %} table if not exists {%- endif %} {{ database -}}.{{- schema -}}.{{- table -}} (
                 {%- for column in column_descriptions -%}
                     {{- column.name }} {{ column.type }}{% if column.type == 'number' %}({{ column.precision }}, {{ column.scale }}){% endif -%} {% if not loop.last %},{% endif -%}
                 {%- endfor -%}
@@ -176,7 +176,7 @@ class SnowSink(Sink):
             database=database,
             schema=schema,
             column_descriptions=column_descriptions,
-            append=append,
+            transient=transient,
         )
         print(create_table_ddl)
 
