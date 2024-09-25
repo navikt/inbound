@@ -53,7 +53,7 @@ class TestSnowSink(TestCase):
             database="this",
             schema="that",
             column_descriptions=desc,
-            append=True,
+            transient=False,
         )
         expected = "create table if not exists this.that.foo(foo number(38, 0))"
         assert result.strip() == expected.strip()
@@ -73,7 +73,7 @@ class TestSnowSink(TestCase):
             database="this",
             schema="that",
             column_descriptions=desc,
-            append=True,
+            transient=False,
         )
         expected = "create table if not exists this.that.foo(foo varchar)"
         assert result.strip() == expected.strip()
@@ -93,7 +93,7 @@ class TestSnowSink(TestCase):
             database="this",
             schema="that",
             column_descriptions=desc,
-            append=True,
+            transient=False,
         )
         expected = "create table if not exists this.that.foo(foo number(38, 2))"
         assert result.strip() == expected.strip()
@@ -150,7 +150,7 @@ class TestSnowSink(TestCase):
             connection_handler=MockSnowHandler(),
             file_handler=file_handler,
             table="foo.bar.baz",
-            append=False,
+            transient=False,
             tmp_file_max_size=4,
         )
         sink.ingest(data_generator=generator(), column_description=desc)
@@ -166,7 +166,7 @@ class TestSnowSink(TestCase):
     def test_batch_result_number(self):
         sink = SnowSink(
             "foo.bar.baz",
-            append=False,
+            transient=False,
             connection_handler=MockSnowHandler(),
             file_handler=MockFileHandler(),
         )
@@ -184,7 +184,7 @@ class TestSnowSink(TestCase):
     def test_batch_result_stop_is_greater_than_start(self):
         sink = SnowSink(
             "foo.bar.baz",
-            append=False,
+            transient=False,
             connection_handler=MockSnowHandler(),
             file_handler=MockFileHandler(),
         )
@@ -202,7 +202,7 @@ class TestSnowSink(TestCase):
     def test_multiple_batches_number(self):
         sink = SnowSink(
             "foo.bar.baz",
-            append=False,
+            transient=False,
             connection_handler=MockSnowHandler(),
             file_handler=MockFileHandler(),
             tmp_file_max_size=4,
@@ -221,7 +221,7 @@ class TestSnowSink(TestCase):
     def test_batch_result_row(self):
         sink = SnowSink(
             "foo.bar.baz",
-            append=False,
+            transient=False,
             connection_handler=MockSnowHandler(),
             file_handler=MockFileHandler(),
         )
@@ -268,7 +268,7 @@ class TestSnowSink(TestCase):
         file_handler = MockFileHandler()
         sink = SnowSink(
             "foo.bar.baz",
-            append=False,
+            transient=False,
             connection_handler=MockSnowHandler(),
             file_handler=file_handler,
         )

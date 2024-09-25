@@ -49,7 +49,7 @@ class TestMSSQLIntegration(TestCase):
     def test_highwatermarks(self):
         highwatermarks = [{"A": 1}]
         query = """
-            select t.* from 
+            select t.* from
             (select 1 as a
             union
             select 2 as a) as t
@@ -70,7 +70,7 @@ class TestMSSQLIntegration(TestCase):
         query = """
             select *
             from (
-                select 1 as a 
+                select 1 as a
                 union
                 select 2 as a
             )
@@ -88,7 +88,7 @@ class TestMSSQLIntegration(TestCase):
     def test_mssql_to_snow(self):
 
         query_template = """
-            select 1 as a 
+            select 1 as a
             union all
             select 2 as a
         """
@@ -109,7 +109,7 @@ class TestMSSQLIntegration(TestCase):
                 sink = SnowSink(
                     connection_handler=SnowHandler(connection=snow_con),
                     table=snow_table,
-                    append=False,
+                    transient=True,
                 )
                 mapper = MSSQLToSnowDescriptionMapper()
                 job = Job(tap, sink, mapper)

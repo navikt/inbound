@@ -42,7 +42,7 @@ class TestOraToSnowIntegration(TestCase):
                 sink = SnowSink(
                     connection_handler=SnowHandler(connection=snow_con),
                     table=snow_table,
-                    append=False,
+                    transient=True,
                 )
                 mapper = OraToSnowDescriptionMapper()
                 job = Job(tap, sink, mapper)
