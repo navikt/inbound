@@ -51,7 +51,7 @@ class TestJob(TestCase):
         job = Job(tap=tap, sink=sink, metadata=metadata)
         job.run()
         result = sink.captured_result
-        expected = [[(1, datetime(2020, 1, 1, 0, 0), "foo", "bar", "baz", "foobar")]]
+        expected = [[(1, "foo", "bar", "baz", "foobar", datetime(2020, 1, 1, 0, 0))]]
         assert result == expected
 
     def test_job_result_tap_name(self):
@@ -80,11 +80,11 @@ class TestJob(TestCase):
         print(result)
         expected = [
             "foo",
-            "_inbound__load_time",
             "_inbound__source_env",
             "_inbound__run_id",
             "_inbound__job_name",
             "_inbound__version",
+            "_inbound__load_time",
         ]
         assert result == expected
 
@@ -117,13 +117,6 @@ class TestJob(TestCase):
                 name="foo", type=None, precision=None, scale=None, nullable=True
             ),
             Description(
-                name="_inbound__load_time",
-                type="timestamp",
-                precision=None,
-                scale=None,
-                nullable=False,
-            ),
-            Description(
                 name="_inbound__source_env",
                 type="varchar",
                 precision=200,
@@ -148,6 +141,13 @@ class TestJob(TestCase):
                 name="_inbound__version",
                 type="varchar",
                 precision=200,
+                scale=None,
+                nullable=False,
+            ),
+            Description(
+                name="_inbound__load_time",
+                type="timestamp",
+                precision=None,
                 scale=None,
                 nullable=False,
             ),
@@ -189,11 +189,11 @@ class TestJob(TestCase):
                 (
                     1,
                     '{"foo": 1}',
-                    datetime(2020, 1, 1, 0, 0),
                     "foo",
                     "bar",
                     "baz",
                     "foobar",
+                    datetime(2020, 1, 1, 0, 0),
                 )
             ]
         ]
@@ -212,13 +212,6 @@ class TestJob(TestCase):
             Description(
                 name="_inbound__raw",
                 type="variant",
-                precision=None,
-                scale=None,
-                nullable=False,
-            ),
-            Description(
-                name="_inbound__load_time",
-                type="timestamp",
                 precision=None,
                 scale=None,
                 nullable=False,
@@ -248,6 +241,13 @@ class TestJob(TestCase):
                 name="_inbound__version",
                 type="varchar",
                 precision=200,
+                scale=None,
+                nullable=False,
+            ),
+            Description(
+                name="_inbound__load_time",
+                type="timestamp",
+                precision=None,
                 scale=None,
                 nullable=False,
             ),
