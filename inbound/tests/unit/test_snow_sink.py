@@ -290,3 +290,12 @@ class TestSnowSink(TestCase):
         assert result == expected
 
     # TODO: Legge til flere tester
+
+    def test_default_transient_postfix_is_added_to_table_name(self):
+        sink = SnowSink(
+            "foo.bar.baz",
+            transient=True,
+            connection_handler=MockSnowHandler(),
+            file_handler=MockFileHandler(),
+        )
+        assert sink.table == "foo.bar.baz__transient"
