@@ -13,12 +13,22 @@ class OraToSnowDescriptionMapper(Mapper):
             "<DbType DB_TYPE_DATE>": "datetime",  # date i oracle kan også inneholde tidspunkt
         }
         return Description(
-            name=column.name,
+            name=self._map_non_ascii(column.name),
             type=type_mapping.get(column.type, "varchar"),
             precision=self._map_precision(column.precision),
             scale=self._map_scale(column.scale),
             nullable=column.nullable,
         )
+
+    def _map_non_ascii(self, name: str) -> str:
+        name = name.lower()
+        if name.isidentifier() and name.isascii():
+            return name
+        name = name.replace("æ", "ae")
+        name = name.replace("ø", "o")
+        name = name.replace("å", "a")
+        assert name.isidentifier() and name.isascii()
+        return name
 
     def _map_precision(self, precision):
         if precision is None:

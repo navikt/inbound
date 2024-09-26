@@ -25,7 +25,7 @@ class TestOraMapper(TestCase):
 
     def test_default_to_varchar_if_dtype_mapping_not_exists(self):
         test = Description(
-            name=None,
+            name="foo",
             type="<DbType DB_TYPE_CHAR>",
             precision=None,
             scale=None,
@@ -33,7 +33,7 @@ class TestOraMapper(TestCase):
         )
         result = OraToSnowDescriptionMapper().map(test)
         expected = Description(
-            name=None,
+            name="foo",
             type="varchar",
             precision=38,
             scale=5,
@@ -41,7 +41,88 @@ class TestOraMapper(TestCase):
         )
         assert result == expected
 
-    # TODO: Legge til flere tester
+    def test_names_with_ø_is_mapped_to_o(self):
+        test = Description(
+            name="føø",
+            type="<DbType DB_TYPE_VARCHAR>",
+            precision=38,
+            scale=0,
+            nullable=True,
+        )
+        result = OraToSnowDescriptionMapper().map(test)
+        expected = Description(
+            name="foo",
+            type="varchar",
+            precision=38,
+            scale=0,
+            nullable=True,
+        )
+        assert result == expected
+
+    def test_names_with_æ_is_mapped_to_ae(self):
+        test = Description(
+            name="fææ",
+            type="<DbType DB_TYPE_VARCHAR>",
+            precision=38,
+            scale=0,
+            nullable=True,
+        )
+        result = OraToSnowDescriptionMapper().map(test)
+        expected = Description(
+            name="faeae",
+            type="varchar",
+            precision=38,
+            scale=0,
+            nullable=True,
+        )
+        assert result == expected
+
+    def test_names_is_converted_to_lowercase(self):
+        test = Description(
+            name="FOO",
+            type="<DbType DB_TYPE_VARCHAR>",
+            precision=38,
+            scale=0,
+            nullable=True,
+        )
+        result = OraToSnowDescriptionMapper().map(test)
+        expected = Description(
+            name="foo",
+            type="varchar",
+            precision=38,
+            scale=0,
+            nullable=True,
+        )
+        assert result == expected
+
+    def test_names_with_å_is_mapped_to_a(self):
+        test = Description(
+            name="fåå",
+            type="<DbType DB_TYPE_VARCHAR>",
+            precision=38,
+            scale=0,
+            nullable=True,
+        )
+        result = OraToSnowDescriptionMapper().map(test)
+        expected = Description(
+            name="faa",
+            type="varchar",
+            precision=38,
+            scale=0,
+            nullable=True,
+        )
+        assert result == expected
+
+    def test_names_with_unknown_mapping_raises_assertion_error(self):
+        test = Description(
+            name="ö",
+            type="<DbType DB_TYPE_CHAR>",
+            precision=38,
+            scale=0,
+            nullable=True,
+        )
+        with self.assertRaises(AssertionError):
+            OraToSnowDescriptionMapper().map(test)
 
 
 class TestAnaplanMapper(TestCase):
