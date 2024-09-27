@@ -1,0 +1,25 @@
+name: Build Inbound Image
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/inbound-image.yaml
+      - inbound
+  workflow_dispatch:
+
+jobs:
+  build_and_push:
+    name: Build and push docker container
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: nais/docker-build-push@v0
+        with:
+          team: virksomhetsdatalaget
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}

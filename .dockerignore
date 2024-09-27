@@ -1,0 +1,6 @@
+*
+!README.md
+!setup.py
+!inbound
+**/.mypy_cache
+**/__pycache__
