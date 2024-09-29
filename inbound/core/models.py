@@ -1,5 +1,5 @@
 import datetime
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from importlib.metadata import version
 
 
@@ -18,7 +18,7 @@ class Metadata:
     run_id: str
     job_name: str
     inbound_version: str = version("inbound")
-    load_time: datetime.datetime = datetime.datetime.now()
+    load_time: datetime.datetime = field(default_factory=datetime.datetime.now)
 
     def get_description(self):
         return [
