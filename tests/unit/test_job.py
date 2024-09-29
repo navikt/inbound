@@ -253,3 +253,8 @@ class TestJob(TestCase):
             ),
         ]
         assert result == expected
+
+    def test_metadata_load_time_should_update(self):
+        meta1 = Metadata(source_env="foo", run_id="bar", job_name="baz")
+        meta2 = Metadata(source_env="foo", run_id="bar", job_name="baz")
+        assert meta1.load_time != meta2.load_time
