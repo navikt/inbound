@@ -34,7 +34,7 @@ setup(
             "pyodbc",
         ],
         "snowflake": [
-            "snowflake-connector-python>=3.0.0",
+            "snowflake-connector-python[secure-local-storage]>=3.0.0",
         ],
         "dev": [
             "black",
