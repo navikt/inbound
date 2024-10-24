@@ -44,7 +44,9 @@ class SnowHandler:
             cur.execute(copy_into_query)
 
     def swap_tables(self, old_table: str, new_table: str):
-        rename_old_table_query = f"alter table if exists {old_table} rename to {old_table}__old"
+        rename_old_table_query = (
+            f"alter table if exists {old_table} rename to {old_table}__old"
+        )
         rename_new_table_query = f"alter table {new_table} rename to {old_table}"
         drop_query = f"drop table if exists {old_table}__old"
         with self.connection.cursor() as cur:
@@ -102,6 +104,8 @@ class SnowSink(Sink):
         column_description: list[Description],
     ):
         snow_database, snow_schema, snow_table = self.table.split(".")
+        if self.transient:
+            snow_table = f"{snow_table}__temp"
 
         if self.ddl is None:
             self.ddl = self.create_ddl(
@@ -165,7 +169,7 @@ class SnowSink(Sink):
 
         if self.transient:
             old_table = self.table
-            new_table = f"{self.table}__temp"
+            new_table = f"{snow_database}.{snow_schema}.{snow_table}"
             self.snow_handler.swap_tables(old_table=old_table, new_table=new_table)
 
         return batch_results
@@ -179,7 +183,7 @@ class SnowSink(Sink):
         transient: bool,
     ) -> str:
         ddl_jinja = """
-                create {%- if transient %} or replace transient table {% else %} table if not exists {%- endif %} {{ database -}}.{{- schema -}}.{{- table -}}{%- if transient -%}__temp{%- endif -%} (
+                create {%- if transient %} or replace transient table {% else %} table if not exists {%- endif %} {{ database -}}.{{- schema -}}.{{- table -}} (
                 {%- for column in column_descriptions -%}
                     {{- column.name }} {{ column.type }}{% if column.type == 'number' %}({{ column.precision }}, {{ column.scale }}){% endif -%} {% if not loop.last %},{% endif -%}
                 {%- endfor -%}
