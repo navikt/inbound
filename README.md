@@ -43,3 +43,14 @@ docker compose up
 ```shell
 docker compose down
 ```
+
+For at integrasjonstestene for mssql skal fungere må du ha installert UnixODBC driver og Microsoft ODBC driver for SQL Server. Slik kan du installere disse på MacOS:
+
+```shell
+brew install unixodbc
+brew tap microsoft/mssql-release https://github.com/Microsoft/homebrew-mssql-release
+brew update
+HOMEBREW_ACCEPT_EULA=Y brew install msodbcsql18 mssql-tools18
+```
+
+Oppskrift fra [Hailiang Chen på Medium](https://medium.com/@chen19/accessing-ms-sql-server-on-macos-via-odbc-a-step-by-step-guide-86cb5c70ba14)
