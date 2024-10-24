@@ -110,12 +110,14 @@ class TestMSSQLIntegration(TestCase):
                     connection_handler=SnowHandler(connection=snow_con),
                     table=snow_table,
                     transient=True,
+                    transient_table_postfix="",
                 )
                 mapper = MSSQLToSnowDescriptionMapper()
-                job = Job(tap, sink, mapper)
+                job = Job(tap=tap, sink=sink, description_mapper=mapper)
                 job.run()
                 with snow_con.cursor() as cur:
                     cur.execute(f"select * from {snow_table}")
                     result = cur.fetchall()
                     expected = [(1,), (2,)]
                     assert result == expected
+                    cur.execute(f"drop table if exists {snow_table}")
