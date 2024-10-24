@@ -43,6 +43,15 @@ class SnowHandler:
             cur.execute(put_query)
             cur.execute(copy_into_query)
 
+    def swap_tables(self, old_table: str, new_table: str):
+        rename_old_table_query = f"alter table if exists {old_table} rename to {old_table}__old"
+        rename_new_table_query = f"alter table {new_table} rename to {old_table}"
+        drop_query = f"drop table if exists {old_table}__old"
+        with self.connection.cursor() as cur:
+            cur.execute(rename_old_table_query)
+            cur.execute(rename_new_table_query)
+            cur.execute(drop_query)
+
 
 class FileHandler:
     def __init__(self, file_path: str = "/tmp/inbound", file_name: str = "inbound.csv"):
@@ -154,6 +163,11 @@ class SnowSink(Sink):
             print("batch uploaded")
         self.file_handler.delete_file()
 
+        if self.transient:
+            old_table = self.table
+            new_table = f"{self.table}__temp"
+            self.snow_handler.swap_tables(old_table=old_table, new_table=new_table)
+
         return batch_results
 
     @staticmethod
@@ -165,7 +179,7 @@ class SnowSink(Sink):
         transient: bool,
     ) -> str:
         ddl_jinja = """
-                create {%- if transient %} or replace transient table {% else %} table if not exists {%- endif %} {{ database -}}.{{- schema -}}.{{- table -}} (
+                create {%- if transient %} or replace transient table {% else %} table if not exists {%- endif %} {{ database -}}.{{- schema -}}.{{- table -}}{%- if transient -%}__temp{%- endif -%} (
                 {%- for column in column_descriptions -%}
                     {{- column.name }} {{ column.type }}{% if column.type == 'number' %}({{ column.precision }}, {{ column.scale }}){% endif -%} {% if not loop.last %},{% endif -%}
                 {%- endfor -%}
