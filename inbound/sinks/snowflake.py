@@ -113,22 +113,29 @@ class SnowSink(Sink):
         data_generator: Generator[list[tuple], Any, None],
         column_description: list[Description],
     ):
+        temp_table = f"{self.table}__tmp"
 
         if self.ddl is None:
-            self.ddl = self.create_ddl(
+            ddl = self.create_ddl(
                 table=self.table,
                 column_descriptions=column_description,
                 transient=self.transient,
             )
+            temp_ddl = self.create_ddl(
+                table=f"{self.table}__tmp",
+                column_descriptions=column_description,
+                transient=True,
+            )
+        if self.ddl is not None:
+            ddl = self.ddl
+            temp_ddl = self.ddl.replace(self.table, temp_table)
 
         self.file_handler.create_dir()
 
         if not self.transient:
-            self.snow_handler.create_table(self.ddl)
-        temp_table = f"{self.table}__tmp"
-        temp_table_ddl = self.ddl.replace(self.table, temp_table)
+            self.snow_handler.create_table(ddl)
         self.snow_handler.drop_table(temp_table)
-        self.snow_handler.create_table(temp_table_ddl)
+        self.snow_handler.create_table(temp_ddl)
 
         batch_results = []
         batch_counter = -1
