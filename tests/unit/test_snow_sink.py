@@ -55,13 +55,11 @@ class TestSnowSink(TestCase):
             )
         ]
         result = SnowSink.create_ddl(
-            table="foo",
-            database="this",
-            schema="that",
+            table="this.that.foo",
             column_descriptions=desc,
             transient=False,
         )
-        expected = "create table if not exists this.that.foo(foo number(38, 0))"
+        expected = "create table if not exists this.that.foo (foo number(38, 0))"
         assert result.strip() == expected.strip()
 
     def test_create_ddl_varchar_should_not_have_precision_or_scale(self):
@@ -75,19 +73,17 @@ class TestSnowSink(TestCase):
             )
         ]
         result = SnowSink.create_ddl(
-            table="foo",
-            database="this",
-            schema="that",
+            table="this.that.foo",
             column_descriptions=desc,
             transient=False,
         )
-        expected = "create table if not exists this.that.foo(foo varchar)"
+        expected = "create table if not exists this.that.foo (foo varchar)"
         assert result.strip() == expected.strip()
 
     def test_create_ddl_number_with_scale(self):
         desc = [
             Description(
-                name="foo",
+                name="bar",
                 type="number",
                 precision=38,
                 scale=2,
@@ -96,12 +92,10 @@ class TestSnowSink(TestCase):
         ]
         result = SnowSink.create_ddl(
             table="foo",
-            database="this",
-            schema="that",
             column_descriptions=desc,
             transient=False,
         )
-        expected = "create table if not exists this.that.foo(foo number(38, 2))"
+        expected = "create table if not exists foo (bar number(38, 2))"
         assert result.strip() == expected.strip()
 
     def test_tmp_file_max_size(self):

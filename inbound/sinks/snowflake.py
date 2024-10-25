@@ -91,7 +91,7 @@ class SnowSink(Sink):
         transient: bool,
         connection_handler: SnowHandler,
         tmp_file_max_size: int = 1024 * 1024 * 1024 * 4,  # 4GB
-        csv_writer=None,
+        csv_writer=partial(csv.writer),
         ddl: str = None,
         file_handler: FileHandler = None,
         transient_table_postfix: str = "__transient",
@@ -101,8 +101,6 @@ class SnowSink(Sink):
             self.table = f"{table}{transient_table_postfix}"
         self.transient = transient
         self.tmp_file_max_size = tmp_file_max_size
-        if csv_writer is None:
-            csv_writer = partial(csv.writer)
         self.csv_writer = csv_writer
         self.ddl = ddl
         self.snow_handler = connection_handler
@@ -115,14 +113,10 @@ class SnowSink(Sink):
         data_generator: Generator[list[tuple], Any, None],
         column_description: list[Description],
     ):
-        snow_database, snow_schema, snow_table = self.table.split(".")
-        temp_table = f"{snow_table}__temp"
 
         if self.ddl is None:
             self.ddl = self.create_ddl(
-                database=snow_database,
-                schema=snow_schema,
-                table=snow_table,
+                table=self.table,
                 column_descriptions=column_description,
                 transient=self.transient,
             )
@@ -131,8 +125,9 @@ class SnowSink(Sink):
 
         if not self.transient:
             self.snow_handler.create_table(self.ddl)
-        temp_table_ddl = self.ddl.replace(snow_table, temp_table)
-        self.snow_handler.drop_table(f"{snow_database}.{snow_schema}.{temp_table}")
+        temp_table = f"{self.table}__tmp"
+        temp_table_ddl = self.ddl.replace(self.table, temp_table)
+        self.snow_handler.drop_table(temp_table)
         self.snow_handler.create_table(temp_table_ddl)
 
         batch_results = []
@@ -171,10 +166,11 @@ class SnowSink(Sink):
             )
             print(f"Uploading new batch to snow: {batch_results}")
             self.file_handler.close_file(file=file)
+            database, schema, table = temp_table.split(".")
             self.snow_handler.ingest_file_to_table(
-                database=snow_database,
-                schema=snow_schema,
-                table=temp_table,
+                database=database,
+                schema=schema,
+                table=table,
                 file_path=self.file_handler.file_path,
                 file_name=self.file_handler.file_name,
             )
@@ -183,10 +179,9 @@ class SnowSink(Sink):
 
         if self.transient:
             old_table = self.table
-            new_table = f"{snow_database}.{snow_schema}.{temp_table}"
+            new_table = temp_table
             self.snow_handler.swap_tables(old_table=old_table, new_table=new_table)
         if not self.transient:
-            temp_table = f"{snow_database}.{snow_schema}.{temp_table}"
             self.snow_handler.ingest_from_table(table=temp_table, to_table=self.table)
             self.snow_handler.drop_table(temp_table)
 
@@ -195,13 +190,11 @@ class SnowSink(Sink):
     @staticmethod
     def create_ddl(
         table: str,
-        database: str,
-        schema: str,
         column_descriptions: list[Description],
         transient: bool,
     ) -> str:
         ddl_jinja = """
-                create {%- if transient %} or replace transient table {% else %} table if not exists {%- endif %} {{ database -}}.{{- schema -}}.{{- table -}} (
+                create {%- if transient %} or replace transient table {% else %} table if not exists {%- endif %} {{ table }} (
                 {%- for column in column_descriptions -%}
                     {{- column.name }} {{ column.type }}{% if column.type == 'number' %}({{ column.precision }}, {{ column.scale }}){% endif -%} {% if not loop.last %},{% endif -%}
                 {%- endfor -%}
@@ -209,16 +202,11 @@ class SnowSink(Sink):
             """.strip()
         ddl_template = Environment().from_string(source=ddl_jinja)
 
-        create_table_ddl = ddl_template.render(
+        return ddl_template.render(
             table=table,
-            database=database,
-            schema=schema,
             column_descriptions=column_descriptions,
             transient=transient,
         )
-        print(create_table_ddl)
-
-        return create_table_ddl
 
 
 def snow_generate_highwatermark(connection: SnowflakeConnection, query) -> list[dict]:
