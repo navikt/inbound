@@ -16,6 +16,10 @@ class MockSnowHandler:
         file_path: str,
         file_name: str,
     ): ...
+    def ingest_from_table(self, table, to_table): ...
+    def drop_table(self, table): ...
+
+
 class MockFileHandler:
     def __init__(self, file_path: str = "/tmp/inbound", file_name: str = "inbound.csv"):
         self.file_path = file_path
@@ -28,6 +32,8 @@ class MockFileHandler:
     def create_dir(self): ...
     def close_file(self, file): ...
     def delete_file(self): ...
+
+
 def mock_generator():
     yield [(0,)]
 
@@ -49,13 +55,11 @@ class TestSnowSink(TestCase):
             )
         ]
         result = SnowSink.create_ddl(
-            table="foo",
-            database="this",
-            schema="that",
+            table="this.that.foo",
             column_descriptions=desc,
             transient=False,
         )
-        expected = "create table if not exists this.that.foo(foo number(38, 0))"
+        expected = "create table if not exists this.that.foo (foo number(38, 0))"
         assert result.strip() == expected.strip()
 
     def test_create_ddl_varchar_should_not_have_precision_or_scale(self):
@@ -69,19 +73,17 @@ class TestSnowSink(TestCase):
             )
         ]
         result = SnowSink.create_ddl(
-            table="foo",
-            database="this",
-            schema="that",
+            table="this.that.foo",
             column_descriptions=desc,
             transient=False,
         )
-        expected = "create table if not exists this.that.foo(foo varchar)"
+        expected = "create table if not exists this.that.foo (foo varchar)"
         assert result.strip() == expected.strip()
 
     def test_create_ddl_number_with_scale(self):
         desc = [
             Description(
-                name="foo",
+                name="bar",
                 type="number",
                 precision=38,
                 scale=2,
@@ -90,25 +92,13 @@ class TestSnowSink(TestCase):
         ]
         result = SnowSink.create_ddl(
             table="foo",
-            database="this",
-            schema="that",
             column_descriptions=desc,
             transient=False,
         )
-        expected = "create table if not exists this.that.foo(foo number(38, 2))"
+        expected = "create table if not exists foo (bar number(38, 2))"
         assert result.strip() == expected.strip()
 
     def test_tmp_file_max_size(self):
-        class MockSnowHandler:
-            def create_table(self, ddl: str): ...
-            def ingest_file_to_table(
-                self,
-                table: str,
-                database: str,
-                schema: str,
-                file_path: str,
-                file_name: str,
-            ): ...
         class MockFileHandler:
             def __init__(
                 self, file_path: str = "/tmp/inbound", file_name: str = "inbound.csv"
