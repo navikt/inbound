@@ -54,6 +54,16 @@ class SnowHandler:
             cur.execute(rename_new_table_query)
             cur.execute(drop_query)
 
+    def ingest_from_table(self, table: str, to_table: str):
+        query = f"insert into {to_table} select * from {table}"
+        with self.connection.cursor() as cur:
+            cur.execute(query)
+
+    def drop_table(self, table: str):
+        query = f"drop table if exists {table}"
+        with self.connection.cursor() as cur:
+            cur.execute(query)
+
 
 class FileHandler:
     def __init__(self, file_path: str = "/tmp/inbound", file_name: str = "inbound.csv"):
@@ -104,8 +114,7 @@ class SnowSink(Sink):
         column_description: list[Description],
     ):
         snow_database, snow_schema, snow_table = self.table.split(".")
-        if self.transient:
-            snow_table = f"{snow_table}__temp"
+        temp_table = f"{snow_table}__temp"
 
         if self.ddl is None:
             self.ddl = self.create_ddl(
@@ -119,7 +128,12 @@ class SnowSink(Sink):
             self.csv_writer = partial(csv.writer)
 
         self.file_handler.create_dir()
-        self.snow_handler.create_table(self.ddl)
+
+        if not self.transient:
+            self.snow_handler.create_table(self.ddl)
+        temp_table_ddl = self.ddl.replace(snow_table, temp_table)
+        self.snow_handler.drop_table(f"{snow_database}.{snow_schema}.{temp_table}")
+        self.snow_handler.create_table(temp_table_ddl)
 
         batch_results = []
         batch_counter = -1
@@ -160,7 +174,7 @@ class SnowSink(Sink):
             self.snow_handler.ingest_file_to_table(
                 database=snow_database,
                 schema=snow_schema,
-                table=snow_table,
+                table=temp_table,
                 file_path=self.file_handler.file_path,
                 file_name=self.file_handler.file_name,
             )
@@ -169,8 +183,12 @@ class SnowSink(Sink):
 
         if self.transient:
             old_table = self.table
-            new_table = f"{snow_database}.{snow_schema}.{snow_table}"
+            new_table = f"{snow_database}.{snow_schema}.{temp_table}"
             self.snow_handler.swap_tables(old_table=old_table, new_table=new_table)
+        if not self.transient:
+            temp_table = f"{snow_database}.{snow_schema}.{temp_table}"
+            self.snow_handler.ingest_from_table(table=temp_table, to_table=self.table)
+            self.snow_handler.drop_table(temp_table)
 
         return batch_results
 

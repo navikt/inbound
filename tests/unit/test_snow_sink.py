@@ -16,6 +16,10 @@ class MockSnowHandler:
         file_path: str,
         file_name: str,
     ): ...
+    def ingest_from_table(self, table, to_table): ...
+    def drop_table(self, table): ...
+
+
 class MockFileHandler:
     def __init__(self, file_path: str = "/tmp/inbound", file_name: str = "inbound.csv"):
         self.file_path = file_path
@@ -28,6 +32,8 @@ class MockFileHandler:
     def create_dir(self): ...
     def close_file(self, file): ...
     def delete_file(self): ...
+
+
 def mock_generator():
     yield [(0,)]
 
@@ -99,16 +105,6 @@ class TestSnowSink(TestCase):
         assert result.strip() == expected.strip()
 
     def test_tmp_file_max_size(self):
-        class MockSnowHandler:
-            def create_table(self, ddl: str): ...
-            def ingest_file_to_table(
-                self,
-                table: str,
-                database: str,
-                schema: str,
-                file_path: str,
-                file_name: str,
-            ): ...
         class MockFileHandler:
             def __init__(
                 self, file_path: str = "/tmp/inbound", file_name: str = "inbound.csv"
