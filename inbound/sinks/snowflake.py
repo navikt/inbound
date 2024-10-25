@@ -101,6 +101,8 @@ class SnowSink(Sink):
             self.table = f"{table}{transient_table_postfix}"
         self.transient = transient
         self.tmp_file_max_size = tmp_file_max_size
+        if csv_writer is None:
+            csv_writer = partial(csv.writer)
         self.csv_writer = csv_writer
         self.ddl = ddl
         self.snow_handler = connection_handler
@@ -124,8 +126,6 @@ class SnowSink(Sink):
                 column_descriptions=column_description,
                 transient=self.transient,
             )
-        if self.csv_writer is None:
-            self.csv_writer = partial(csv.writer)
 
         self.file_handler.create_dir()
 
