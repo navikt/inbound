@@ -18,6 +18,16 @@ con_config = {
 }
 
 
+class MockTap(Tap):
+    def column_descriptions(self):
+        return [
+            Description(name="a", type="number", precision=38, scale=0, nullable=True)
+        ]
+
+    def data_generator(self):
+        yield [(1,)]
+
+
 class TestSnowIntegration(TestCase):
 
     def test_highwatermark_query(self):
@@ -44,17 +54,6 @@ class TestSnowIntegration(TestCase):
                 high = SnowHighwatermark(connection=con, query=query)
 
     def test_non_transient_table_is_appending(self):
-        class MockTap(Tap):
-            def column_descriptions(self):
-                return [
-                    Description(
-                        name="a", type="number", precision=38, scale=0, nullable=True
-                    )
-                ]
-
-            def data_generator(self):
-                yield [(1,)]
-
         with snowflake.connector.connect(**con_config) as con:
             with con.cursor() as cur:
                 cur.execute(
@@ -76,6 +75,50 @@ class TestSnowIntegration(TestCase):
                 result = cur.fetchall()
                 expected = [(1,), (1,)]
                 assert result == expected
+
                 cur.execute(
                     "drop table if exists inbound_integration_test.test.test_non_transient_table_is_appending"
+                )
+                cur.execute(
+                    "drop table if exists inbound_integration_test.test.test_non_transient_table_is_appending__transient"
+                )
+
+    def test_transient_table_is_always_created(self):
+        with snowflake.connector.connect(**con_config) as con:
+            with con.cursor() as cur:
+                cur.execute(
+                    "drop table if exists inbound_integration_test.test.test_transient_table_is_always_created"
+                )
+                cur.execute(
+                    "drop table if exists inbound_integration_test.test.test_transient_table_is_always_created__transient"
+                )
+                tap = MockTap()
+                sink = SnowSink(
+                    table="inbound_integration_test.test.test_transient_table_is_always_created",
+                    transient=False,
+                    connection_handler=SnowHandler(connection=con),
+                )
+                job = Job(tap=tap, sink=sink)
+
+                job.run()
+
+                cur.execute(
+                    "select * from inbound_integration_test.test.test_transient_table_is_always_created__transient"
+                )
+                result = cur.fetchall()
+                expected = [(1,)]
+                assert result == expected
+
+                cur.execute(
+                    "select * from inbound_integration_test.test.test_transient_table_is_always_created"
+                )
+                result = cur.fetchall()
+                expected = [(1,)]
+                assert result == expected
+
+                cur.execute(
+                    "drop table if exists inbound_integration_test.test.test_transient_table_is_always_created"
+                )
+                cur.execute(
+                    "drop table if exists inbound_integration_test.test.test_transient_table_is_always_created__transient"
                 )
