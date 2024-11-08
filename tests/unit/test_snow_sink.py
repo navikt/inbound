@@ -288,7 +288,7 @@ class TestSnowSink(TestCase):
             connection_handler=MockSnowHandler(),
             file_handler=MockFileHandler(),
         )
-        assert sink.table == "foo.bar.baz__transient"
+        assert sink.transient_table == "foo.bar.baz__transient"
 
     def test_overridden_transient_postfix_is_added_to_table_name(self):
         sink = SnowSink(
@@ -298,7 +298,7 @@ class TestSnowSink(TestCase):
             file_handler=MockFileHandler(),
             transient_table_postfix="__override",
         )
-        assert sink.table == "foo.bar.baz__override"
+        assert sink.transient_table == "foo.bar.baz__override"
 
     def test_default_transient_postfix_is_not_added_to_table_name_when_transient_is_false(
         self,

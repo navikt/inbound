@@ -97,8 +97,8 @@ class SnowSink(Sink):
         transient_table_postfix: str = "__transient",
     ):
         self.table = table
-        if transient:
-            self.table = f"{table}{transient_table_postfix}"
+        self.transient_table = f"{table}{transient_table_postfix}"
+        self.transient_table_postfix = transient_table_postfix
         self.transient = transient
         self.tmp_file_max_size = tmp_file_max_size
         self.csv_writer = csv_writer
@@ -185,7 +185,7 @@ class SnowSink(Sink):
         self.file_handler.delete_file()
 
         if self.transient:
-            old_table = self.table
+            old_table = self.transient_table
             new_table = temp_table
             self.snow_handler.swap_tables(old_table=old_table, new_table=new_table)
         if not self.transient:
