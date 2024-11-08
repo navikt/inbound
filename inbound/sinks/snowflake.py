@@ -184,13 +184,10 @@ class SnowSink(Sink):
             print("batch uploaded")
         self.file_handler.delete_file()
 
-        if self.transient:
-            old_table = self.transient_table
-            new_table = temp_table
-            self.snow_handler.swap_tables(old_table=old_table, new_table=new_table)
         if not self.transient:
             self.snow_handler.ingest_from_table(table=temp_table, to_table=self.table)
-            self.snow_handler.drop_table(temp_table)
+        self.snow_handler.swap_tables(old_table=self.transient_table, new_table=temp_table)
+        self.snow_handler.drop_table(temp_table)
 
         return batch_results
 
