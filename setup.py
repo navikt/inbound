@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="inbound",
-    version="0.3.0",
+    version="0.3.1",
     description=(
         "Pakke for å laste dataprodukter fra ulike kildesystemer til Snowflake"
     ),
