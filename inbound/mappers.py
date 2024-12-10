@@ -75,6 +75,7 @@ class MSSQLToSnowDescriptionMapper(Mapper):
             "<class 'int'>": "number",
             "<class 'decimal.Decimal'>": "number",
             "<class 'str'>": "varchar",
+            "<class 'bit'>": "boolean",
         }
         return Description(
             name=column.name,
