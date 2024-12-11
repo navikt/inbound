@@ -201,7 +201,7 @@ class SnowSink(Sink):
         ddl_jinja = """
                 create {%- if transient %} or replace transient table {% else %} table if not exists {%- endif %} {{ table }} (
                 {%- for column in column_descriptions -%}
-                    {{- column.name }} {{ column.type }}{% if column.type == 'number' %}({{ column.precision }}, {{ column.scale }}){% endif -%} {% if not loop.last %},{% endif -%}
+                    "{{- column.name }}" {{ column.type }}{% if column.type == 'number' %}({{ column.precision }}, {{ column.scale }}){% endif -%} {% if not loop.last %},{% endif -%}
                 {%- endfor -%}
                 )
             """.strip()
