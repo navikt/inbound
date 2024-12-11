@@ -70,6 +70,8 @@ class Job:
                 tap_data_generator, column_description=sink_desc
             )
 
+        print(f"sink_desc before ingest: {sink_desc}")
+
         batch_results = self.sink.ingest(
             data_generator=tap_data_generator, column_description=sink_desc
         )
