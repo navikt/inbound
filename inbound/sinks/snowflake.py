@@ -132,7 +132,6 @@ class SnowSink(Sink):
 
         self.file_handler.create_dir()
 
-        print(f"ddl before snow_handler.create_table(ddl): {ddl}")
         if not self.transient:
             self.snow_handler.create_table(ddl)
         self.snow_handler.drop_table(temp_table)
