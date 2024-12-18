@@ -95,6 +95,7 @@ class SnowSink(Sink):
         ddl: str = None,
         file_handler: FileHandler = None,
         transient_table_postfix: str = "__transient",
+        hyphens: bool = False,
     ):
         self.table = table
         self.transient_table = f"{table}{transient_table_postfix}"
@@ -103,6 +104,7 @@ class SnowSink(Sink):
         self.tmp_file_max_size = tmp_file_max_size
         self.csv_writer = csv_writer
         self.ddl = ddl
+        self.hyphens = hyphens
         self.snow_handler = connection_handler
         if file_handler is None:
             file_handler = FileHandler()
@@ -120,11 +122,13 @@ class SnowSink(Sink):
                 table=self.table,
                 column_descriptions=column_description,
                 transient=self.transient,
+                hyphens=self.hyphens,
             )
             temp_ddl = self.create_ddl(
                 table=f"{self.table}__tmp",
                 column_descriptions=column_description,
                 transient=True,
+                hyphens=self.hyphens,
             )
         if self.ddl is not None:
             ddl = self.ddl
@@ -196,14 +200,25 @@ class SnowSink(Sink):
         table: str,
         column_descriptions: list[Description],
         transient: bool,
+        hyphens: bool = False,
     ) -> str:
-        ddl_jinja = """
+        
+        if hyphens:
+            ddl_jinja = """
                 create {%- if transient %} or replace transient table {% else %} table if not exists {%- endif %} {{ table }} (
                 {%- for column in column_descriptions -%}
                     "{{- column.name }}" {{ column.type }}{% if column.type == 'number' %}({{ column.precision }}, {{ column.scale }}){% endif -%} {% if not loop.last %},{% endif -%}
                 {%- endfor -%}
                 )
             """.strip()
+        else:
+            ddl_jinja = """
+                    create {%- if transient %} or replace transient table {% else %} table if not exists {%- endif %} {{ table }} (
+                    {%- for column in column_descriptions -%}
+                        {{- column.name }} {{ column.type }}{% if column.type == 'number' %}({{ column.precision }}, {{ column.scale }}){% endif -%} {% if not loop.last %},{% endif -%}
+                    {%- endfor -%}
+                    )
+                """.strip()
         ddl_template = Environment().from_string(source=ddl_jinja)
 
         return ddl_template.render(

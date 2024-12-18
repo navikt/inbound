@@ -63,6 +63,25 @@ class TestSnowSink(TestCase):
         expected = "create table if not exists this.that.foo (foo number(38, 0))"
         assert result.strip() == expected.strip()
 
+    def test_create_ddl_with_hyphens(self):
+        desc = [
+            Description(
+                name="foo",
+                type="number",
+                precision=38,
+                scale=0,
+                nullable=True,
+            )
+        ]
+        result = SnowSink.create_ddl(
+            table="this.that.foo",
+            column_descriptions=desc,
+            transient=False,
+            hyphens=True,
+        )
+        expected = "create table if not exists this.that.foo (\"foo\" number(38, 0))"
+        assert result.strip() == expected.strip()
+
     def test_create_ddl_varchar_should_not_have_precision_or_scale(self):
         desc = [
             Description(
