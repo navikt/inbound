@@ -63,7 +63,7 @@ class TestSnowSink(TestCase):
         expected = "create table if not exists this.that.foo (foo number(38, 0))"
         assert result.strip() == expected.strip()
 
-    def test_create_ddl_with_hyphens(self):
+    def test_create_ddl_with_quote_identifiers(self):
         desc = [
             Description(
                 name="foo",
@@ -77,7 +77,7 @@ class TestSnowSink(TestCase):
             table="this.that.foo",
             column_descriptions=desc,
             transient=False,
-            hyphens=True,
+            quote_identifiers=True,
         )
         expected = "create table if not exists this.that.foo (\"foo\" number(38, 0))"
         assert result.strip() == expected.strip()
