@@ -56,12 +56,6 @@ class AnaplanTap(Tap):
         # TODO: Isoler IO
         auth_response = self._get_auth_response()
         header = self._get_header(auth_response=auth_response)
-        taskID = self._import_data(
-            header, self.workspaceID, self.modelID, self.exportID
-        )
-        self._check_status(
-            header, self.workspaceID, self.modelID, self.exportID, taskID
-        )
         chunks = self._get_file_chunks(
             header, self.workspaceID, self.modelID, self.fileID
         )
@@ -111,30 +105,6 @@ class AnaplanTap(Tap):
             "Content-Type": "application/json",
         }
         return import_headers
-
-    def _import_data(self, header, workspaceID, modelID, exportID):
-        import_headers = header
-        import_url = f"https://api.anaplan.com/2/0/workspaces/{workspaceID}/models/{modelID}/exports/{exportID}/tasks"
-        post_import = requests.post(
-            import_url, headers=import_headers, data=json.dumps({"localeName": "en_US"})
-        )
-        taskID = post_import.json()["task"]["taskId"]
-        return taskID
-
-    def _check_status(self, header, workspaceID, modelID, exportID, taskID):
-        import_headers = header
-        status_url = f"https://api.anaplan.com/2/0/workspaces/{workspaceID}/models/{modelID}/exports/{exportID}/tasks/{taskID}"
-        print(f"status url: {status_url}")
-        while True:
-            respons = requests.get(
-                status_url,
-                headers=import_headers,
-                data=json.dumps({"localeName": "en_US"}),
-            )
-            task_status = respons.json()["task"]["taskState"]
-            if task_status == "COMPLETE":
-                break
-            time.sleep(1)
 
     # IO mot anaplan. Ok
     def _get_file_chunks(self, header, workspaceID, modelID, fileID):
