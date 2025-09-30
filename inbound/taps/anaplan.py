@@ -3,7 +3,7 @@ import csv
 import io
 import json
 import time
-from typing import Any, Generator
+from typing import Any, Callable, Generator
 
 import requests
 
@@ -29,15 +29,19 @@ class AnaplanTap(Tap):
         )
         self.auth_url = "https://auth.anaplan.com/token/authenticate"
 
-    # TODO: Må refaktoreres
-    def column_descriptions(self) -> list[Description]:
+    def _get_export_response(self) -> dict:
         auth_response = self._get_auth_response()
         import_header = self._get_header(auth_response=auth_response)
         url = f"https://api.anaplan.com/2/0/workspaces/{self.workspaceID}/models/{self.modelID}/exports/{self.exportID}"
         respons = requests.get(
             url, headers=import_header, data=json.dumps({"localeName": "en_US"})
         )
-        response_json = respons.json()
+        return respons.json()
+
+    def column_descriptions(
+        self, export_info_service: Callable = _get_export_response
+    ) -> list[Description]:
+        response_json = export_info_service()
 
         column_names = response_json["exportMetadata"]["headerNames"]
         data_types = response_json["exportMetadata"]["dataTypes"]
