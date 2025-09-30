@@ -32,7 +32,7 @@ class AnaplanTap(Tap):
     def _get_export_response(self) -> dict:
         auth_response = self._get_auth_response()
         import_header = self._get_header(auth_response=auth_response)
-        url = f"https://api.anaplan.com/2/0/workspaces/{self.workspaceID}/models/{self.modelID}/exports/{self.exportID}"
+        url = f"{self.base_url}/exports/{self.exportID}"
         respons = requests.get(
             url, headers=import_header, data=json.dumps({"localeName": "en_US"})
         )
@@ -53,13 +53,13 @@ class AnaplanTap(Tap):
         )
 
     def _trigger_export(self, header) -> dict:
-        url = f"https://api.anaplan.com/2/0/workspaces/{self.workspaceID}/models/{self.modelID}/exports/{self.exportID}/tasks"
+        url = f"{self.base_url}/exports/{self.exportID}/tasks"
         return requests.post(
             url, headers=header, data=json.dumps({"localeName": "en_US"})
         ).json()
 
     def _check_export_task_status(self, header, taskID) -> dict:
-        status_url = f"https://api.anaplan.com/2/0/workspaces/{self.workspaceID}/models/{self.modelID}/exports/{self.exportID}/tasks/{taskID}"
+        status_url = f"{self.base_url}/exports/{self.exportID}/tasks/{taskID}"
         return requests.get(
             status_url,
             headers=header,
@@ -68,14 +68,14 @@ class AnaplanTap(Tap):
 
     def _get_number_of_file_chunks(self, header) -> dict:
         import_headers = header
-        url = f"https://api.anaplan.com/2/0/workspaces/{self.workspaceID}/models/{self.modelID}/files/{self.fileID}/chunks/"
+        url = f"{self.base_url}/files/{self.fileID}/chunks/"
         return requests.get(
             url, headers=import_headers, data=json.dumps({"localeName": "en_US"})
         ).json()
 
     def _get_file_chunk(self, header, chunkID) -> bytes:
         import_headers = header
-        url = f"https://api.anaplan.com/2/0/workspaces/{self.workspaceID}/models/{self.modelID}/files/{self.fileID}/chunks/{chunkID}"
+        url = f"{self.base_url}/files/{self.fileID}/chunks/{chunkID}"
         respons = requests.get(
             url, headers=import_headers, data=json.dumps({"localeName": "en_US"})
         )
