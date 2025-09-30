@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="inbound",
-    version="0.3.4",
+    version="0.3.5",
     description=(
         "Pakke for å laste dataprodukter fra ulike kildesystemer til Snowflake"
     ),
@@ -35,6 +35,12 @@ setup(
         ],
         "snowflake": [
             "snowflake-connector-python[secure-local-storage]>=3.0.0",
+        ],
+        "anaplan": [
+            "requests",
+        ],
+        "mainmanager": [
+            "requests",
         ],
         "dev": [
             "black",
