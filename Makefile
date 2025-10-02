@@ -12,6 +12,9 @@ install:
 		${PY} pip install --upgrade pip && \
 		${PY} pip install -e .[oracle,mssql,snowflake,dev,mainmanager,anaplan]
 
+release:
+	./release.sh
+
 start-colima:
 	colima start --arch x86_64 --memory 6
 
