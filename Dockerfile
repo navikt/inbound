@@ -7,6 +7,6 @@ RUN apt-get install -y git
 WORKDIR /
 RUN python3 -m venv /venv --without-pip
 COPY . .
-RUN pip --python /venv/bin/python install .[snowflake,oracle]
+RUN pip --python /venv/bin/python install .[snowflake,oracle,mainmanager,anaplan]
 # Set Python path
 ENV PATH="/venv/bin:${PATH}"

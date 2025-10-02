@@ -3,7 +3,7 @@ import csv
 import io
 import json
 import time
-from typing import Any, Generator
+from typing import Any, Generator, Optional
 
 import requests
 
@@ -15,8 +15,7 @@ class AnaplanAuthException(Exception):
     pass
 
 
-class AnaplanTap(Tap):
-
+class AnaplanIntegrationService:
     def __init__(self, workspaceID, modelID, exportID, fileID, username, password):
         self.workspaceID = workspaceID
         self.modelID = modelID
@@ -29,18 +28,93 @@ class AnaplanTap(Tap):
         )
         self.auth_url = "https://auth.anaplan.com/token/authenticate"
 
-    # TODO: Må refaktoreres
-    def column_descriptions(self) -> list[Description]:
-        auth_response = self._get_auth_response()
-        import_header = self._get_header(auth_response=auth_response)
-        url = f"https://api.anaplan.com/2/0/workspaces/{self.workspaceID}/models/{self.modelID}/exports/{self.exportID}"
+    def export_information(self) -> dict:
+        url = f"{self.base_url}/exports/{self.exportID}"
         respons = requests.get(
-            url, headers=import_header, data=json.dumps({"localeName": "en_US"})
+            url, headers=self._headers(), data=json.dumps({"localeName": "en_US"})
         )
-        response_json = respons.json()
+        return respons.json()
 
-        column_names = response_json["exportMetadata"]["headerNames"]
-        data_types = response_json["exportMetadata"]["dataTypes"]
+    def trigger_export_task(self) -> dict:
+        url = f"{self.base_url}/exports/{self.exportID}/tasks"
+        return requests.post(
+            url, headers=self._headers(), data=json.dumps({"localeName": "en_US"})
+        ).json()
+
+    def export_task_status(self, taskID) -> dict:
+        status_url = f"{self.base_url}/exports/{self.exportID}/tasks/{taskID}"
+        return requests.get(
+            status_url,
+            headers=self._headers(),
+            data=json.dumps({"localeName": "en_US"}),
+        ).json()
+
+    def number_of_file_chunks(self) -> dict:
+        url = f"{self.base_url}/files/{self.fileID}/chunks/"
+        return requests.get(
+            url, headers=self._headers(), data=json.dumps({"localeName": "en_US"})
+        ).json()
+
+    def file_chunk(self, chunkID) -> bytes:
+        url = f"{self.base_url}/files/{self.fileID}/chunks/{chunkID}"
+        respons = requests.get(
+            url, headers=self._headers(), data=json.dumps({"localeName": "en_US"})
+        )
+        return respons.content
+
+    def _auth_response(self) -> requests.Response:
+        user = "Basic " + str(
+            base64.b64encode(
+                (f"{self.username}:{self.password}").encode("utf-8")
+            ).decode("utf-8")
+        )
+        auth_header = {"Authorization": user, "Content-Type": "application/json"}
+
+        return requests.post(
+            url=self.auth_url,
+            headers=auth_header,
+            data=json.dumps({"localeName": "en_US"}),
+        )
+
+    def _headers(self, auth_response: Optional[requests.Response] = None):
+        auth_response = auth_response or self._auth_response()
+        if not auth_response.ok:
+            raise AnaplanAuthException(
+                f"Authentication against Anaplan failed: {auth_response.text}"
+            )
+        token_value = auth_response.json()["tokenInfo"]["tokenValue"]
+
+        return {
+            "Authorization": f"AnaplanAuthToken {token_value}",
+            "Content-Type": "application/json",
+        }
+
+
+class AnaplanTap(Tap):
+
+    def __init__(
+        self,
+        workspaceID,
+        modelID,
+        exportID,
+        fileID,
+        username,
+        password,
+        integration_service: Optional[AnaplanIntegrationService] = None,
+    ):
+        self.integration_service = integration_service or AnaplanIntegrationService(
+            workspaceID=workspaceID,
+            modelID=modelID,
+            exportID=exportID,
+            fileID=fileID,
+            username=username,
+            password=password,
+        )
+
+    def column_descriptions(self) -> list[Description]:
+        export = self.integration_service.export_information()
+        column_names = export["exportMetadata"]["headerNames"]
+        data_types = export["exportMetadata"]["dataTypes"]
         metadata = zip(column_names, data_types)
         descriptions = []
         for elem in metadata:
@@ -51,27 +125,26 @@ class AnaplanTap(Tap):
 
         return descriptions
 
-    # TODO: Må refaktoreres
-    def data_generator(self) -> Generator[list[tuple], Any, None]:
-        # TODO: Isoler IO
-        auth_response = self._get_auth_response()
-        header = self._get_header(auth_response=auth_response)
-        taskID = self._import_data(
-            header, self.workspaceID, self.modelID, self.exportID
-        )
-        self._check_status(
-            header, self.workspaceID, self.modelID, self.exportID, taskID
-        )
-        chunks = self._get_file_chunks(
-            header, self.workspaceID, self.modelID, self.fileID
-        )
+    def data_generator(
+        self,
+    ) -> Generator[list[tuple], Any, None]:
+        trigger_response = self.integration_service.trigger_export_task()
+        taskID = trigger_response["task"]["taskId"]
+
+        while (
+            self.integration_service.export_task_status(taskID=taskID)["task"][
+                "taskState"
+            ]
+            != "COMPLETE"
+        ):
+            time.sleep(1)
+
+        file_chunks_response = self.integration_service.number_of_file_chunks()
+        file_chunks = file_chunks_response.get("chunks") or [{"id": "0"}]
         file = bytes()
-        for chunk in chunks:
+        for chunk in file_chunks:
             chunkID = chunk["id"]
-            # TODO: Isoler IO
-            file = file + self._get_exported_file_chunk(
-                header, self.workspaceID, self.modelID, self.fileID, chunkID
-            )
+            file = file + self.integration_service.file_chunk(chunkID=chunkID)
         bytes_to_file = io.StringIO(file.decode("utf-8"))
         data = []
         with bytes_to_file as f:
@@ -84,78 +157,3 @@ class AnaplanTap(Tap):
                 data.append(tuple(row))
 
         yield data
-
-    def _get_auth_response(self):
-        user = "Basic " + str(
-            base64.b64encode(
-                (f"{self.username}:{self.password}").encode("utf-8")
-            ).decode("utf-8")
-        )
-        auth_header = {"Authorization": user, "Content-Type": "application/json"}
-
-        auth_response = requests.post(
-            url=self.auth_url,
-            headers=auth_header,
-            data=json.dumps({"localeName": "en_US"}),
-        )
-        return auth_response
-
-    def _get_header(self, auth_response: requests.Response):
-        if not auth_response.ok:
-            raise AnaplanAuthException(
-                f"Authentication against Anaplan failed: {auth_response.text}"
-            )
-        token_value = auth_response.json()["tokenInfo"]["tokenValue"]
-        import_headers = {
-            "Authorization": f"AnaplanAuthToken {token_value}",
-            "Content-Type": "application/json",
-        }
-        return import_headers
-
-    def _import_data(self, header, workspaceID, modelID, exportID):
-        import_headers = header
-        import_url = f"https://api.anaplan.com/2/0/workspaces/{workspaceID}/models/{modelID}/exports/{exportID}/tasks"
-        post_import = requests.post(
-            import_url, headers=import_headers, data=json.dumps({"localeName": "en_US"})
-        )
-        taskID = post_import.json()["task"]["taskId"]
-        return taskID
-
-    def _check_status(self, header, workspaceID, modelID, exportID, taskID):
-        import_headers = header
-        status_url = f"https://api.anaplan.com/2/0/workspaces/{workspaceID}/models/{modelID}/exports/{exportID}/tasks/{taskID}"
-        print(f"status url: {status_url}")
-        while True:
-            respons = requests.get(
-                status_url,
-                headers=import_headers,
-                data=json.dumps({"localeName": "en_US"}),
-            )
-            task_status = respons.json()["task"]["taskState"]
-            if task_status == "COMPLETE":
-                break
-            time.sleep(1)
-
-    # IO mot anaplan. Ok
-    def _get_file_chunks(self, header, workspaceID, modelID, fileID):
-        import_headers = header
-        url = f"https://api.anaplan.com/2/0/workspaces/{workspaceID}/models/{modelID}/files/{fileID}/chunks/"
-        respons = requests.get(
-            url, headers=import_headers, data=json.dumps({"localeName": "en_US"})
-        )
-        # Test om chunks eksisterer
-        # chunks er en liste av dictionaries hvor hver dictionary har en chunk ID
-        try:
-            chunks = respons.json()["chunks"]
-        except:
-            chunks = [{"id": "0"}]  # ingen chunks, kun en fil
-        return chunks
-
-    # IO mot anaplan. Ok
-    def _get_exported_file_chunk(self, header, workspaceID, modelID, fileID, chunkID):
-        import_headers = header
-        url = f"https://api.anaplan.com/2/0/workspaces/{workspaceID}/models/{modelID}/files/{fileID}/chunks/{chunkID}"
-        respons = requests.get(
-            url, headers=import_headers, data=json.dumps({"localeName": "en_US"})
-        )
-        return respons.content
