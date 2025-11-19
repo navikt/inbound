@@ -1,4 +1,4 @@
-FROM python:3.11-slim-trixie@sha256:8ef21a26e7c342e978a68cf2d6b07627885930530064f572f432ea422a8c0907 AS base
+FROM python:3.11-slim-bookworm AS base
 
 RUN apt-get update
 # install odbc driver
