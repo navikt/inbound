@@ -16,7 +16,7 @@ RUN python3 -m venv /venv --without-pip
 COPY . .
 RUN pip --python /venv/bin/python install .[snowflake,oracle,mainmanager,anaplan,mssql]
 
-FROM gcr.io/distroless/python3-debian12:latest as final
+FROM base as final
 
 # copy tdsodbc files
 COPY --from=freetds-builder /usr/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu
