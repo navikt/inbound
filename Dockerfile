@@ -19,7 +19,7 @@ ENV PATH="/venv/bin:${PATH}"
 
 # Teste etter på...
 
-FROM gcr.io/distroless/python3-debian12:debug as final
+FROM gcr.io/distroless/python3-debian12@sha256:8ce6bba3f793ba7d834467dfe18983c42f9b223604970273e9e3a22b1891fc27 AS final
 
 # copy tdsodbc files
 COPY --from=base /usr/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu
@@ -30,6 +30,8 @@ COPY --from=base /etc/odbcinst.ini /etc/odbcinst.ini
 #COPY --from=freetds-builder /usr/lib/x86_64-linux-gnu/libltdl* /usr/lib/x86_64-linux-gnu/
 #COPY --from=freetds-builder /usr/lib/x86_64-linux-gnu/odbc /usr/lib/x86_64-linux-gnu/odbc/
 
+# install shell
+COPY --from=base /bin/sh /bin/sh
 
 ENV PYTHONPYCACHEPREFIX="/tmp/.pycache"
 # Turns off buffering for easier container logging
