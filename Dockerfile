@@ -30,6 +30,9 @@ COPY --from=base /etc/odbcinst.ini /etc/odbcinst.ini
 #COPY --from=freetds-builder /usr/lib/x86_64-linux-gnu/libltdl* /usr/lib/x86_64-linux-gnu/
 #COPY --from=freetds-builder /usr/lib/x86_64-linux-gnu/odbc /usr/lib/x86_64-linux-gnu/odbc/
 
+# copy python venv
+COPY --from=base /venv /venv
+
 # install shell
 COPY --from=base /bin/sh /bin/sh
 
@@ -37,5 +40,5 @@ ENV PYTHONPYCACHEPREFIX="/tmp/.pycache"
 # Turns off buffering for easier container logging
 ENV PYTHONUNBUFFERED=1
 # Set Python path
-ENV PYTHONPATH="/app/venv/lib/python3.11/site-packages"
-ENV PATH="/app/venv/bin:${PATH}"
+ENV PYTHONPATH="/venv/lib/python3.11/site-packages"
+ENV PATH="/venv/bin:${PATH}"
