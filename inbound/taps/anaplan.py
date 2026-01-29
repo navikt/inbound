@@ -113,8 +113,11 @@ class AnaplanTap(Tap):
 
     def column_descriptions(self) -> list[Description]:
         export = self.integration_service.export_information()
-        column_names = export["exportMetadata"]["headerNames"]
-        data_types = export["exportMetadata"]["dataTypes"]
+        try:
+            column_names = export["exportMetadata"]["headerNames"]
+            data_types = export["exportMetadata"]["dataTypes"]
+        except KeyError:
+            raise Exception(f"Could not get column information from Anaplan: {export}")
         metadata = zip(column_names, data_types)
         descriptions = []
         for elem in metadata:
