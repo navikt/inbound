@@ -49,14 +49,9 @@ class AnaplanToSnowDescriptionMapper(Mapper):
 
     def map(self, column_description: Description) -> Description:
         column = column_description
-        type_mapping = {
-            "TEXT": "varchar",
-            "NUMBER": "varchar",
-            "BOOLEAN": "varchar",
-        }
         return Description(
             name=column.name,
-            type=type_mapping[column.type],
+            type="varchar",
             precision=column.precision,
             scale=column.scale,
             nullable=column.nullable,
