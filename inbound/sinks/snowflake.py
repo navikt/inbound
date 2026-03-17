@@ -4,6 +4,7 @@ from datetime import datetime
 from functools import partial
 from pathlib import Path
 from typing import Any, Generator
+import logging
 
 from jinja2 import Environment
 from snowflake.connector import DictCursor, SnowflakeConnection
@@ -11,6 +12,7 @@ from snowflake.connector import DictCursor, SnowflakeConnection
 from ..core.models import Description
 from ..sdk.sink import Sink
 
+logger = logging.getLogger("inbound.sinks.snowflake")
 
 class SnowHandler:
     def __init__(self, connection: SnowflakeConnection) -> None:
@@ -18,6 +20,7 @@ class SnowHandler:
 
     def create_table(self, ddl: str):
         with self.connection.cursor() as cur:
+            print(f"Executing query: {ddl}")
             cur.execute(ddl)
 
     def ingest_file_to_table(
@@ -40,6 +43,8 @@ class SnowHandler:
                 FILE_FORMAT = (TYPE = 'CSV' FIELD_OPTIONALLY_ENCLOSED_BY = '"' PARSE_HEADER = TRUE)
                 MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE
             """
+            logger.debug(f"Executing query: {put_query}")
+            logger.debug(f"Executing query: {copy_into_query}")
             cur.execute(put_query)
             cur.execute(copy_into_query)
 
